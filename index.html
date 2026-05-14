@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ShieldOS Security Audit</title>
+
+  <title>Alder Home Security Audit</title>
 
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -11,67 +12,72 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
     }
 
-    body {
-      background: #050810;
-      color: #e2e8f0;
-      font-family: 'Rajdhani', sans-serif;
-      min-height: 100vh;
-      overflow-x: hidden;
+    body{
+      background:#050810;
+      color:white;
+      font-family:'Rajdhani',sans-serif;
+      overflow-x:hidden;
     }
 
-    button,
-    input {
-      font-family: inherit;
+    button,input{
+      font-family:inherit;
     }
 
-    @keyframes radar-ping {
-      0% {
-        transform: translate(-50%, -50%) scale(0.5);
-        opacity: 0.6;
+    #root{
+      min-height:100vh;
+    }
+
+    @keyframes pulse{
+      0%,100%{
+        opacity:1;
       }
 
-      100% {
-        transform: translate(-50%, -50%) scale(1.5);
-        opacity: 0;
-      }
-    }
-
-    @keyframes flicker {
-      0%,100% { opacity:1 }
-      50% { opacity:0.85 }
-    }
-
-    @keyframes blink {
-      0%,100% { opacity:1 }
-      50% { opacity:0 }
-    }
-
-    @keyframes slide-up {
-      from {
-        transform: translateY(30px);
-        opacity: 0;
-      }
-
-      to {
-        transform: translateY(0);
-        opacity: 1;
+      50%{
+        opacity:.6;
       }
     }
 
-    #root {
-      min-height: 100vh;
+    @keyframes scan{
+      0%{
+        transform:translateY(-100%);
+      }
+
+      100%{
+        transform:translateY(500%);
+      }
     }
+
+    @keyframes fadeUp{
+      from{
+        opacity:0;
+        transform:translateY(20px);
+      }
+
+      to{
+        opacity:1;
+        transform:translateY(0);
+      }
+    }
+
+    .fade{
+      animation:fadeUp .5s ease;
+    }
+
   </style>
+
 </head>
+
 <body>
 
 <div id="root"></div>
@@ -80,178 +86,368 @@
 
 const { useState, useEffect } = React;
 
-const ROOMS = [
-  {
-    id: "front_door",
-    label: "Front Door",
-    risk: "HIGH",
-    devices: ["Smart Lock", "Video Doorbell", "Motion Sensor"],
-    price: 24.99,
-    col: 2,
-    row: 1
-  },
-  {
-    id: "garage",
-    label: "Garage",
-    risk: "HIGH",
-    devices: ["Garage Sensor", "Camera"],
-    price: 18.99,
-    col: 1,
-    row: 1
-  },
-  {
-    id: "living",
-    label: "Living Room",
-    risk: "MED",
-    devices: ["Motion Sensor", "Glass Break"],
-    price: 14.99,
-    col: 1,
-    row: 2
-  },
-  {
-    id: "kitchen",
-    label: "Kitchen",
-    risk: "LOW",
-    devices: ["Smoke + CO Sensor"],
-    price: 9.99,
-    col: 2,
-    row: 2
-  },
-  {
-    id: "master",
-    label: "Master Bed",
-    risk: "MED",
-    devices: ["Motion Sensor", "Window Sensor"],
-    price: 12.99,
-    col: 3,
-    row: 1
-  },
-  {
-    id: "bedroom2",
-    label: "Bedroom 2",
-    risk: "LOW",
-    devices: ["Window Sensor"],
-    price: 7.99,
-    col: 3,
-    row: 2
-  },
-  {
-    id: "backyard",
-    label: "Back Yard",
-    risk: "HIGH",
-    devices: ["Outdoor Camera", "Floodlight"],
-    price: 19.99,
-    col: 2,
-    row: 3
-  },
-  {
-    id: "basement",
-    label: "Basement",
-    risk: "HIGH",
-    devices: ["Flood Sensor", "Camera"],
-    price: 16.99,
-    col: 1,
-    row: 3
-  },
-  {
-    id: "driveway",
-    label: "Driveway",
-    risk: "MED",
-    devices: ["Outdoor Camera"],
-    price: 14.99,
-    col: 3,
-    row: 3
-  }
-];
-
-const RISK_COLORS = {
-  HIGH: {
-    border: "#ff3b5c",
-    bg: "rgba(255,59,92,0.12)",
-    glow: "rgba(255,59,92,0.3)",
-    label: "#ff3b5c"
-  },
-  MED: {
-    border: "#f59e0b",
-    bg: "rgba(245,158,11,0.1)",
-    glow: "rgba(245,158,11,0.2)",
-    label: "#f59e0b"
-  },
-  LOW: {
-    border: "#10b981",
-    bg: "rgba(16,185,129,0.08)",
-    glow: "rgba(16,185,129,0.15)",
-    label: "#10b981"
-  }
-};
-
 const BASE_PRICE = 29.99;
 
-function App() {
+const ROOMS = [
 
-  const [flaggedZones, setFlaggedZones] = useState(new Set());
-  const [screen, setScreen] = useState("audit");
-  const [scanY, setScanY] = useState(0);
-  const [hoveredRoom, setHoveredRoom] = useState(null);
+  {
+    id:"front",
+    label:"Front Door",
+    risk:"HIGH",
+    devices:["Doorbell Camera","Smart Lock","Motion Sensor"],
+    price:24.99,
+    col:2,
+    row:1
+  },
 
-  useEffect(() => {
+  {
+    id:"garage",
+    label:"Garage",
+    risk:"HIGH",
+    devices:["Garage Sensor","Outdoor Camera"],
+    price:18.99,
+    col:1,
+    row:1
+  },
+
+  {
+    id:"living",
+    label:"Living Room",
+    risk:"MED",
+    devices:["Glass Break","Motion Sensor"],
+    price:14.99,
+    col:1,
+    row:2
+  },
+
+  {
+    id:"kitchen",
+    label:"Kitchen",
+    risk:"LOW",
+    devices:["Smoke + CO Sensor"],
+    price:9.99,
+    col:2,
+    row:2
+  },
+
+  {
+    id:"master",
+    label:"Master Bedroom",
+    risk:"MED",
+    devices:["Window Sensor","Motion Sensor"],
+    price:12.99,
+    col:3,
+    row:1
+  },
+
+  {
+    id:"bed2",
+    label:"Bedroom 2",
+    risk:"LOW",
+    devices:["Window Sensor"],
+    price:7.99,
+    col:3,
+    row:2
+  },
+
+  {
+    id:"backyard",
+    label:"Back Yard",
+    risk:"HIGH",
+    devices:["Floodlight Camera","Motion Sensor"],
+    price:19.99,
+    col:2,
+    row:3
+  },
+
+  {
+    id:"driveway",
+    label:"Driveway",
+    risk:"MED",
+    devices:["Outdoor Camera"],
+    price:14.99,
+    col:3,
+    row:3
+  },
+
+  {
+    id:"basement",
+    label:"Basement",
+    risk:"HIGH",
+    devices:["Flood Sensor","Indoor Camera"],
+    price:16.99,
+    col:1,
+    row:3
+  }
+
+];
+
+const COLORS = {
+
+  HIGH:{
+    border:"#ff3b5c",
+    bg:"rgba(255,59,92,.12)",
+    glow:"rgba(255,59,92,.4)",
+    text:"#ff3b5c"
+  },
+
+  MED:{
+    border:"#f59e0b",
+    bg:"rgba(245,158,11,.12)",
+    glow:"rgba(245,158,11,.4)",
+    text:"#f59e0b"
+  },
+
+  LOW:{
+    border:"#10b981",
+    bg:"rgba(16,185,129,.12)",
+    glow:"rgba(16,185,129,.4)",
+    text:"#10b981"
+  }
+
+};
+
+function App(){
+
+  const [screen,setScreen] = useState("audit");
+
+  const [selected,setSelected] = useState(new Set());
+
+  const [hovered,setHovered] = useState(null);
+
+  const [scanY,setScanY] = useState(0);
+
+  const [minutes,setMinutes] = useState(14);
+
+  const [seconds,setSeconds] = useState(59);
+
+  useEffect(()=>{
+
     let y = 0;
 
-    const interval = setInterval(() => {
-      y = (y + 0.4) % 100;
+    const interval = setInterval(()=>{
+
+      y = (y + .5) % 100;
+
       setScanY(y);
-    }, 30);
 
-    return () => clearInterval(interval);
+    },30);
 
-  }, []);
+    return ()=>clearInterval(interval);
 
-  const toggleRoom = (id) => {
-    setFlaggedZones(prev => {
+  },[]);
+
+  useEffect(()=>{
+
+    const timer = setInterval(()=>{
+
+      setSeconds(prev=>{
+
+        if(prev === 0){
+
+          if(minutes === 0){
+            clearInterval(timer);
+            return 0;
+          }
+
+          setMinutes(m=>m - 1);
+
+          return 59;
+        }
+
+        return prev - 1;
+
+      });
+
+    },1000);
+
+    return ()=>clearInterval(timer);
+
+  },[minutes]);
+
+  const toggleRoom = (id)=>{
+
+    setSelected(prev=>{
+
       const next = new Set(prev);
 
-      if (next.has(id)) {
+      if(next.has(id)){
         next.delete(id);
-      } else {
+      }else{
         next.add(id);
       }
 
       return next;
+
     });
+
   };
 
-  const selectedRooms = ROOMS.filter(r => flaggedZones.has(r.id));
+  const selectedRooms = ROOMS.filter(r=>selected.has(r.id));
 
-  const monthlyAdd = selectedRooms.reduce((acc, r) => acc + r.price, 0);
+  const monthlyAdd = selectedRooms.reduce(
+    (acc,r)=>acc + r.price,
+    0
+  );
 
   const totalMonthly = BASE_PRICE + monthlyAdd;
 
-  const integrityScore = Math.max(
+  const integrity = Math.max(
     0,
-    100 - flaggedZones.size * 10
+    100 - selected.size * 10
   );
 
-  if (screen === "summary") {
+  const yearlySavings =
+    ((totalMonthly * 1.42) - totalMonthly) * 12;
 
-    return (
+  if(screen === "success"){
+
+    return(
+
       <div
+        className="fade"
         style={{
-          maxWidth: 480,
-          margin: "0 auto",
-          padding: 20
+          minHeight:"100vh",
+          display:"flex",
+          justifyContent:"center",
+          alignItems:"center",
+          padding:20
+        }}
+      >
+
+        <div
+          style={{
+            maxWidth:450,
+            width:"100%",
+            background:"rgba(255,255,255,.03)",
+            border:"1px solid rgba(255,255,255,.08)",
+            borderRadius:18,
+            padding:30,
+            textAlign:"center"
+          }}
+        >
+
+          <div
+            style={{
+              width:90,
+              height:90,
+              borderRadius:"50%",
+              margin:"0 auto 24px",
+              display:"flex",
+              alignItems:"center",
+              justifyContent:"center",
+              background:"rgba(0,212,255,.1)",
+              border:"2px solid #00d4ff",
+              fontSize:42,
+              color:"#00d4ff"
+            }}
+          >
+            ✓
+          </div>
+
+          <div
+            style={{
+              fontFamily:"'Syncopate',sans-serif",
+              fontSize:24,
+              marginBottom:14
+            }}
+          >
+            SYSTEM RESERVED
+          </div>
+
+          <div
+            style={{
+              color:"rgba(255,255,255,.7)",
+              lineHeight:1.6,
+              marginBottom:24
+            }}
+          >
+            Your same-day Alder installation pricing has been
+            locked in.
+          </div>
+
+          <div
+            style={{
+              background:"rgba(0,212,255,.05)",
+              border:"1px solid rgba(0,212,255,.2)",
+              borderRadius:14,
+              padding:20,
+              marginBottom:20
+            }}
+          >
+
+            <div
+              style={{
+                color:"#00d4ff",
+                marginBottom:8,
+                fontSize:12
+              }}
+            >
+              ESTIMATED MONTHLY
+            </div>
+
+            <div
+              style={{
+                fontSize:42,
+                fontWeight:700
+              }}
+            >
+              ${totalMonthly.toFixed(2)}
+            </div>
+
+          </div>
+
+          <button
+            onClick={()=>{
+              window.location.href =
+              "https://kennethatalderquote.pages.dev";
+            }}
+            style={{
+              width:"100%",
+              padding:18,
+              borderRadius:12,
+              border:"none",
+              background:
+                "linear-gradient(135deg,#00d4ff,#0099cc)",
+              color:"#050810",
+              fontWeight:700,
+              cursor:"pointer"
+            }}
+          >
+            VIEW FULL SMART HOME PACKAGE →
+          </button>
+
+        </div>
+
+      </div>
+
+    );
+
+  }
+
+  if(screen === "summary"){
+
+    return(
+
+      <div
+        className="fade"
+        style={{
+          maxWidth:500,
+          margin:"0 auto",
+          padding:20
         }}
       >
 
         <button
-          onClick={() => setScreen("audit")}
+          onClick={()=>setScreen("audit")}
           style={{
-            marginBottom: 20,
-            padding: "8px 14px",
-            borderRadius: 8,
-            border: "1px solid rgba(255,255,255,0.2)",
-            background: "transparent",
-            color: "white",
-            cursor: "pointer"
+            marginBottom:18,
+            background:"transparent",
+            border:"1px solid rgba(255,255,255,.15)",
+            color:"white",
+            padding:"8px 14px",
+            borderRadius:10,
+            cursor:"pointer"
           }}
         >
           ← Back
@@ -259,96 +455,180 @@ function App() {
 
         <div
           style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 16,
-            padding: 24,
-            marginBottom: 20
+            background:"rgba(255,59,92,.08)",
+            border:"1px solid rgba(255,59,92,.25)",
+            borderRadius:16,
+            padding:18,
+            marginBottom:18,
+            textAlign:"center"
           }}
         >
 
           <div
             style={{
-              fontSize: 14,
-              color: "#00d4ff",
-              marginBottom: 8,
-              fontFamily: "'Share Tech Mono', monospace"
+              color:"#ff3b5c",
+              fontWeight:700,
+              marginBottom:8,
+              letterSpacing:1
             }}
           >
-            HOME INTEGRITY SCORE
+            SAME-DAY DISCOUNT EXPIRES IN
           </div>
 
           <div
             style={{
-              fontSize: 52,
-              fontWeight: 700,
-              color:
-                integrityScore > 70
-                  ? "#10b981"
-                  : integrityScore > 40
-                  ? "#f59e0b"
-                  : "#ff3b5c"
+              fontSize:42,
+              fontFamily:"'Share Tech Mono',monospace"
             }}
           >
-            {integrityScore}%
+            {String(minutes).padStart(2,"0")}:
+            {String(seconds).padStart(2,"0")}
           </div>
 
           <div
             style={{
-              marginTop: 10,
-              color: "rgba(255,255,255,0.6)"
+              marginTop:8,
+              color:"rgba(255,255,255,.65)"
             }}
           >
-            {
-              integrityScore > 70
-                ? "LOW RISK"
-                : integrityScore > 40
-                ? "MODERATE RISK"
-                : "CRITICAL RISK"
-            }
+            Technician pricing locked while onsite
           </div>
 
         </div>
 
         <div
           style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-            marginBottom: 20
+            background:"rgba(255,255,255,.03)",
+            border:"1px solid rgba(255,255,255,.08)",
+            borderRadius:16,
+            padding:22,
+            marginBottom:18
           }}
         >
+
+          <div
+            style={{
+              color:"#00d4ff",
+              fontSize:12,
+              marginBottom:8,
+              fontFamily:"'Share Tech Mono',monospace"
+            }}
+          >
+            ALDER HOME SECURITY
+          </div>
+
+          <div
+            style={{
+              fontSize:46,
+              fontWeight:700,
+              marginBottom:8
+            }}
+          >
+            ${totalMonthly.toFixed(2)}/mo
+          </div>
+
+          <div
+            style={{
+              color:"#10b981",
+              fontWeight:700,
+              marginBottom:12
+            }}
+          >
+            Estimated Savings:
+            ${yearlySavings.toFixed(0)}/year
+          </div>
+
+          <div
+            style={{
+              color:"rgba(255,255,255,.7)",
+              lineHeight:1.6
+            }}
+          >
+            Since we're already in your area today, your home
+            qualifies for discounted same-day installation and
+            reduced equipment activation costs.
+          </div>
+
+        </div>
+
+        <div
+          style={{
+            background:"rgba(255,59,92,.06)",
+            border:"1px solid rgba(255,59,92,.18)",
+            borderRadius:16,
+            padding:18,
+            marginBottom:18
+          }}
+        >
+
+          <div
+            style={{
+              color:"#ff3b5c",
+              fontWeight:700,
+              marginBottom:10
+            }}
+          >
+            SECURITY EXPOSURE DETECTED
+          </div>
+
+          <div
+            style={{
+              color:"rgba(255,255,255,.7)",
+              lineHeight:1.6
+            }}
+          >
+            Multiple vulnerable entry points were identified
+            during the home scan. Homes without active
+            monitoring are more likely to experience delayed
+            emergency response, package theft, and forced-entry
+            incidents.
+          </div>
+
+        </div>
+
+        <div
+          style={{
+            display:"flex",
+            flexDirection:"column",
+            gap:12,
+            marginBottom:20
+          }}
+        >
+
           {
-            selectedRooms.map(room => {
+            selectedRooms.map(room=>{
 
-              const rc = RISK_COLORS[room.risk];
+              const rc = COLORS[room.risk];
 
-              return (
+              return(
+
                 <div
                   key={room.id}
                   style={{
-                    border: `1px solid ${rc.border}`,
-                    background: rc.bg,
-                    borderRadius: 12,
-                    padding: 16
+                    border:`1px solid ${rc.border}`,
+                    background:rc.bg,
+                    borderRadius:14,
+                    padding:16
                   }}
                 >
+
                   <div
                     style={{
-                      color: rc.label,
-                      fontSize: 12,
-                      marginBottom: 6,
-                      fontFamily: "'Share Tech Mono', monospace"
+                      color:rc.text,
+                      fontSize:11,
+                      marginBottom:6,
+                      fontFamily:
+                        "'Share Tech Mono',monospace"
                     }}
                   >
-                    {room.risk} RISK
+                    {room.risk} RISK AREA
                   </div>
 
                   <div
                     style={{
-                      fontSize: 20,
-                      fontWeight: 700,
-                      marginBottom: 6
+                      fontSize:20,
+                      fontWeight:700,
+                      marginBottom:6
                     }}
                   >
                     {room.label}
@@ -356,9 +636,9 @@ function App() {
 
                   <div
                     style={{
-                      fontSize: 13,
-                      color: "rgba(255,255,255,0.6)",
-                      marginBottom: 10
+                      color:"rgba(255,255,255,.65)",
+                      fontSize:13,
+                      marginBottom:8
                     }}
                   >
                     {room.devices.join(" • ")}
@@ -366,140 +646,375 @@ function App() {
 
                   <div
                     style={{
-                      color: "#00d4ff",
-                      fontWeight: 700
+                      color:"#00d4ff",
+                      fontWeight:700
                     }}
                   >
                     +${room.price.toFixed(2)}/mo
                   </div>
 
                 </div>
+
               );
 
             })
           }
+
         </div>
 
-        <div
-          style={{
-            background: "rgba(0,212,255,0.05)",
-            border: "1px solid rgba(0,212,255,0.2)",
-            borderRadius: 16,
-            padding: 20
+        <form
+          action="https://formsubmit.co/kenntupe@gmail.com"
+          method="POST"
+          onSubmit={()=>{
+            setTimeout(()=>{
+              setScreen("success");
+            },800);
           }}
         >
 
-          <div
-            style={{
-              color: "rgba(255,255,255,0.5)",
-              marginBottom: 8
-            }}
-          >
-            TOTAL MONTHLY
+          <input
+            type="hidden"
+            name="_subject"
+            value="New Alder Security Lead"
+          />
+
+          <input
+            type="hidden"
+            name="_captcha"
+            value="false"
+          />
+
+          <input
+            type="hidden"
+            name="_template"
+            value="table"
+          />
+
+          <input
+            type="hidden"
+            name="Monthly Quote"
+            value={`$${totalMonthly.toFixed(2)}`}
+          />
+
+          <input
+            type="hidden"
+            name="Flagged Zones"
+            value={
+              selectedRooms
+              .map(r=>r.label)
+              .join(", ")
+            }
+          />
+
+          <div style={{marginBottom:12}}>
+
+            <input
+              required
+              type="text"
+              name="name"
+              placeholder="Full Name"
+              style={{
+                width:"100%",
+                padding:15,
+                borderRadius:12,
+                border:"1px solid rgba(255,255,255,.1)",
+                background:"rgba(255,255,255,.04)",
+                color:"white"
+              }}
+            />
+
           </div>
 
-          <div
-            style={{
-              fontSize: 42,
-              color: "#00d4ff",
-              fontWeight: 700,
-              marginBottom: 20
-            }}
-          >
-            ${totalMonthly.toFixed(2)}
+          <div style={{marginBottom:12}}>
+
+            <input
+              required
+              type="tel"
+              name="phone"
+              placeholder="Phone Number"
+              style={{
+                width:"100%",
+                padding:15,
+                borderRadius:12,
+                border:"1px solid rgba(255,255,255,.1)",
+                background:"rgba(255,255,255,.04)",
+                color:"white"
+              }}
+            />
+
+          </div>
+
+          <div style={{marginBottom:16}}>
+
+            <input
+              type="text"
+              name="address"
+              placeholder="Home Address"
+              style={{
+                width:"100%",
+                padding:15,
+                borderRadius:12,
+                border:"1px solid rgba(255,255,255,.1)",
+                background:"rgba(255,255,255,.04)",
+                color:"white"
+              }}
+            />
+
           </div>
 
           <button
-            onClick={() => alert("Lead Captured")}
+            type="submit"
             style={{
-              width: "100%",
-              padding: 18,
-              borderRadius: 10,
-              border: "none",
-              background: "linear-gradient(135deg,#00d4ff,#0099cc)",
-              color: "#050810",
-              fontWeight: 700,
-              cursor: "pointer"
+              width:"100%",
+              padding:18,
+              borderRadius:12,
+              border:"none",
+              background:
+                "linear-gradient(135deg,#00d4ff,#0099cc)",
+              color:"#050810",
+              fontWeight:700,
+              fontSize:15,
+              cursor:"pointer",
+              marginBottom:12
             }}
           >
-            SECURE MY HOME →
+            RESERVE SAME-DAY INSTALL →
           </button>
 
+        </form>
+
+        <button
+          onClick={()=>{
+            window.location.href =
+            "https://kennethatalderquote.pages.dev";
+          }}
+          style={{
+            width:"100%",
+            padding:16,
+            borderRadius:12,
+            border:"1px solid rgba(255,255,255,.12)",
+            background:"rgba(255,255,255,.04)",
+            color:"white",
+            fontWeight:700,
+            cursor:"pointer"
+          }}
+        >
+          VIEW FULL SMART HOME PACKAGE
+        </button>
+
+        <div
+          style={{
+            textAlign:"center",
+            marginTop:16,
+            color:"rgba(255,255,255,.35)",
+            fontSize:11
+          }}
+        >
+          Licensed • Professional Monitoring • Cellular Backup
         </div>
 
       </div>
+
     );
+
   }
 
-  return (
+  return(
+
     <div
       style={{
-        maxWidth: 480,
-        margin: "0 auto",
-        padding: 20,
-        position: "relative"
+        maxWidth:500,
+        margin:"0 auto",
+        padding:20,
+        position:"relative"
       }}
     >
 
-      <div
-        style={{
-          marginBottom: 24
-        }}
-      >
+      <div style={{marginBottom:24}}>
+
         <div
           style={{
-            fontSize: 11,
-            color: "#00d4ff",
-            marginBottom: 8,
-            fontFamily: "'Share Tech Mono', monospace"
+            color:"#00d4ff",
+            fontSize:11,
+            marginBottom:8,
+            fontFamily:"'Share Tech Mono',monospace"
           }}
         >
-          SHIELD_OS v5.2.1 ■ SCANNING
+          ALDER SECURITY NODE • LIVE AUDIT •
+          <span
+            style={{
+              animation:"pulse 1s infinite",
+              marginLeft:8
+            }}
+          >
+            ■
+          </span>
         </div>
 
         <div
           style={{
-            fontSize: 28,
-            fontWeight: 700,
-            lineHeight: 1.1,
-            fontFamily: "'Syncopate', sans-serif"
+            fontSize:30,
+            lineHeight:1.1,
+            fontWeight:700,
+            fontFamily:"'Syncopate',sans-serif"
           }}
         >
           HOME SECURITY
-          <br />
+          <br/>
           VULNERABILITY AUDIT
         </div>
+
       </div>
 
       <div
         style={{
-          background: "rgba(255,255,255,0.02)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 16,
-          padding: 16,
-          marginBottom: 20,
-          position: "relative",
-          overflow: "hidden"
+          display:"grid",
+          gridTemplateColumns:"1fr 1fr 1fr",
+          gap:10,
+          marginBottom:20
         }}
       >
 
         <div
           style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            height: 2,
-            top: `${scanY}%`,
+            background:"rgba(255,255,255,.03)",
+            border:"1px solid rgba(255,255,255,.08)",
+            borderRadius:12,
+            padding:14
+          }}
+        >
+
+          <div
+            style={{
+              color:"rgba(255,255,255,.4)",
+              fontSize:10,
+              marginBottom:6
+            }}
+          >
+            INTEGRITY
+          </div>
+
+          <div
+            style={{
+              color:
+                integrity > 70
+                ? "#10b981"
+                : integrity > 40
+                ? "#f59e0b"
+                : "#ff3b5c",
+              fontWeight:700,
+              fontSize:22
+            }}
+          >
+            {integrity}%
+          </div>
+
+        </div>
+
+        <div
+          style={{
+            background:"rgba(255,255,255,.03)",
+            border:"1px solid rgba(255,255,255,.08)",
+            borderRadius:12,
+            padding:14
+          }}
+        >
+
+          <div
+            style={{
+              color:"rgba(255,255,255,.4)",
+              fontSize:10,
+              marginBottom:6
+            }}
+          >
+            GAPS FOUND
+          </div>
+
+          <div
+            style={{
+              color:"#ff3b5c",
+              fontWeight:700,
+              fontSize:22
+            }}
+          >
+            {selected.size}
+          </div>
+
+        </div>
+
+        <div
+          style={{
+            background:"rgba(255,255,255,.03)",
+            border:"1px solid rgba(255,255,255,.08)",
+            borderRadius:12,
+            padding:14
+          }}
+        >
+
+          <div
+            style={{
+              color:"rgba(255,255,255,.4)",
+              fontSize:10,
+              marginBottom:6
+            }}
+          >
+            THREAT
+          </div>
+
+          <div
+            style={{
+              color:
+                selected.size > 4
+                ? "#ff3b5c"
+                : selected.size > 1
+                ? "#f59e0b"
+                : "#10b981",
+              fontWeight:700,
+              fontSize:22
+            }}
+          >
+            {
+              selected.size > 4
+              ? "HIGH"
+              : selected.size > 1
+              ? "MED"
+              : "LOW"
+            }
+          </div>
+
+        </div>
+
+      </div>
+
+      <div
+        style={{
+          background:"rgba(255,255,255,.02)",
+          border:"1px solid rgba(255,255,255,.08)",
+          borderRadius:18,
+          padding:16,
+          position:"relative",
+          overflow:"hidden",
+          marginBottom:20
+        }}
+      >
+
+        <div
+          style={{
+            position:"absolute",
+            left:0,
+            right:0,
+            top:`${scanY}%`,
+            height:2,
             background:
-              "linear-gradient(90deg,transparent,rgba(0,212,255,0.6),transparent)"
+              "linear-gradient(90deg,transparent,#00d4ff,transparent)"
           }}
         />
 
         <div
           style={{
-            marginBottom: 14,
-            color: "rgba(255,255,255,0.4)",
-            fontSize: 12
+            marginBottom:14,
+            color:"rgba(255,255,255,.45)",
+            fontSize:12
           }}
         >
           TAP ZONES TO FLAG AS UNPROTECTED
@@ -507,74 +1022,79 @@ function App() {
 
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: 8,
-            height: 300
+            display:"grid",
+            gridTemplateColumns:"1fr 1fr 1fr",
+            gridTemplateRows:"1fr 1fr 1fr",
+            gap:8,
+            height:320
           }}
         >
 
           {
-            ROOMS.map(room => {
+            ROOMS.map(room=>{
 
-              const isSelected = flaggedZones.has(room.id);
+              const active = selected.has(room.id);
 
-              const rc = RISK_COLORS[room.risk];
+              const rc = COLORS[room.risk];
 
-              return (
+              return(
+
                 <button
                   key={room.id}
-                  onClick={() => toggleRoom(room.id)}
-                  onMouseEnter={() => setHoveredRoom(room.id)}
-                  onMouseLeave={() => setHoveredRoom(null)}
+                  onClick={()=>toggleRoom(room.id)}
+                  onMouseEnter={()=>setHovered(room.id)}
+                  onMouseLeave={()=>setHovered(null)}
                   style={{
-                    gridColumn: room.col,
-                    gridRow: room.row,
-                    borderRadius: 10,
-                    border: `1px solid ${
-                      isSelected
-                        ? rc.border
-                        : "rgba(255,255,255,0.08)"
-                    }`,
+                    gridColumn:room.col,
+                    gridRow:room.row,
+                    borderRadius:12,
+                    border:
+                      active
+                      ? `1px solid ${rc.border}`
+                      : "1px solid rgba(255,255,255,.08)",
                     background:
-                      isSelected
-                        ? rc.bg
-                        : "rgba(255,255,255,0.03)",
-                    color: "white",
-                    cursor: "pointer",
-                    transition: "0.2s",
+                      active
+                      ? rc.bg
+                      : "rgba(255,255,255,.03)",
+                    color:"white",
+                    cursor:"pointer",
+                    transition:".2s",
                     boxShadow:
-                      isSelected
-                        ? `0 0 18px ${rc.glow}`
-                        : "none"
+                      active
+                      ? `0 0 20px ${rc.glow}`
+                      : "none"
                   }}
                 >
 
                   <div
                     style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      marginBottom: 6
+                      fontWeight:700,
+                      marginBottom:6,
+                      fontSize:14
                     }}
                   >
                     {room.label}
                   </div>
 
                   {
-                    isSelected && (
+                    active && (
+
                       <div
                         style={{
-                          color: rc.label,
-                          fontSize: 11,
-                          fontFamily: "'Share Tech Mono', monospace"
+                          color:rc.text,
+                          fontSize:11,
+                          fontFamily:
+                            "'Share Tech Mono',monospace"
                         }}
                       >
                         {room.risk} RISK
                       </div>
+
                     )
                   }
 
                 </button>
+
               );
 
             })
@@ -585,78 +1105,96 @@ function App() {
       </div>
 
       {
-        hoveredRoom && !flaggedZones.has(hoveredRoom) && (
+        hovered && !selected.has(hovered) && (
+
           <div
+            className="fade"
             style={{
-              marginBottom: 18,
-              padding: 14,
-              borderRadius: 12,
-              background: "rgba(0,212,255,0.04)",
-              border: "1px solid rgba(0,212,255,0.15)"
+              marginBottom:18,
+              background:"rgba(0,212,255,.04)",
+              border:"1px solid rgba(0,212,255,.15)",
+              borderRadius:14,
+              padding:14
             }}
           >
 
             <div
               style={{
-                color: "#00d4ff",
-                marginBottom: 8,
-                fontSize: 11,
-                fontFamily: "'Share Tech Mono', monospace"
+                color:"#00d4ff",
+                marginBottom:8,
+                fontSize:11,
+                fontFamily:"'Share Tech Mono',monospace"
               }}
             >
-              RECOMMENDED DEVICES
+              RECOMMENDED PROTECTION
             </div>
 
             <div
               style={{
-                color: "rgba(255,255,255,0.7)"
+                color:"rgba(255,255,255,.75)"
               }}
             >
               {
-                ROOMS.find(r => r.id === hoveredRoom)
-                  ?.devices.join(" • ")
+                ROOMS
+                .find(r=>r.id === hovered)
+                ?.devices.join(" • ")
               }
             </div>
 
           </div>
+
         )
       }
 
       <button
-        onClick={() => {
-          if (flaggedZones.size > 0) {
+        onClick={()=>{
+          if(selected.size > 0){
             setScreen("summary");
           }
         }}
         style={{
-          width: "100%",
-          padding: 18,
-          borderRadius: 10,
-          border: "none",
+          width:"100%",
+          padding:18,
+          borderRadius:14,
+          border:"none",
           background:
-            flaggedZones.size > 0
-              ? "linear-gradient(135deg,#00d4ff,#0099cc)"
-              : "rgba(255,255,255,0.08)",
+            selected.size > 0
+            ? "linear-gradient(135deg,#00d4ff,#0099cc)"
+            : "rgba(255,255,255,.08)",
           color:
-            flaggedZones.size > 0
-              ? "#050810"
-              : "rgba(255,255,255,0.4)",
-          fontWeight: 700,
+            selected.size > 0
+            ? "#050810"
+            : "rgba(255,255,255,.35)",
+          fontWeight:700,
+          fontSize:14,
           cursor:
-            flaggedZones.size > 0
-              ? "pointer"
-              : "default"
+            selected.size > 0
+            ? "pointer"
+            : "default"
         }}
       >
         {
-          flaggedZones.size > 0
-            ? `ANALYZE ${flaggedZones.size} ZONES →`
-            : "SELECT UNPROTECTED ZONES"
+          selected.size > 0
+          ? `ANALYZE ${selected.size} ZONES →`
+          : "SELECT UNPROTECTED ZONES"
         }
       </button>
 
+      <div
+        style={{
+          textAlign:"center",
+          marginTop:16,
+          color:"rgba(255,255,255,.3)",
+          fontSize:11
+        }}
+      >
+        Alder • Professional Monitoring • Smart Home Protection
+      </div>
+
     </div>
+
   );
+
 }
 
 ReactDOM.createRoot(
