@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tactical Site Audit | Security Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #08090b;
+            --card: #0f1115;
+            --primary: #1d6fe8;
+            --accent: #22c55e;
+            --danger: #ef4444;
+            --text: #ffffff;
+            --subtext: #6b7280;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container { width: 100%; max-width: 450px; }
+
+        /* UI Elements */
+        .hud-header { text-align: center; margin-bottom: 30px; }
+        .hud-title { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 2px; font-size: 0.8rem; color: var(--primary); }
+        
+        .score-circle {
+            width: 150px; height: 150px; border-radius: 50%;
+            border: 4px solid var(--danger);
+            margin: 20px auto;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: 0.5s;
+        }
+        .score-val { font-size: 3.5rem; font-weight: 900; line-height: 1; }
+        .score-label { font-size: 0.7rem; color: var(--subtext); text-transform: uppercase; }
+
+        /* Audit Grid */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 30px; }
+        .zone-card {
+            background: var(--card);
+            border: 1px solid #222;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .zone-card.vulnerable { border-color: var(--danger); background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .zone-card.protected { border-color: var(--accent); background: rgba(34, 197, 94, 0.1); color: var(--accent); }
+
+        /* Quote Section (Hidden initially) */
+        #quote-screen { display: none; }
+        .price-hero { background: var(--primary); padding: 20px; border-radius: 15px; text-align: center; margin: 20px 0; }
+        .msrp { text-decoration: line-through; opacity: 0.6; font-size: 0.9rem; }
+        .promo-price { font-size: 3rem; font-weight: 900; }
+
+        /* Inputs */
+        input, select {
+            width: 100%; padding: 15px; margin-bottom: 10px; border-radius: 8px;
+            border: 1px solid #333; background: #161820; color: white; font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            width: 100%; padding: 20px; border: none; border-radius: 12px;
+            font-weight: 900; font-size: 1.1rem; text-transform: uppercase; cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-secure { background: var(--accent); color: white; }
+
+        /* Animations */
+        @keyframes scan {
+            0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; }
+        }
+        .scanning { animation: scan 1s infinite; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <!-- SCREEN 1: THE AUDIT -->
+    <div id="audit-screen">
+        <div class="hud-header">
+            <div class="hud-title">SYSTEM VULNERABILITY SCAN v4.0</div>
+            <div class="score-circle" id="score-ring">
+                <span class="score-val" id="score-num">100%</span>
+                <span class="score-label">Secure</span>
+            </div>
+            <p id="audit-msg" style="color: var(--subtext); font-size: 0.9rem;">Select entry points to assess risk...</p>
+        </div>
+
+        <div class="grid">
+            <div class="zone-card" onclick="toggleZone(this, 'Garage')">Garage</div>
+            <div class="zone-card" onclick="toggleZone(this, 'Front Door')">Front Door</div>
+            <div class="zone-card" onclick="toggleZone(this, 'Side Gate')">Side Gate</div>
+            <div class="zone-card" onclick="toggleZone(this, 'Back Yard')">Back Yard</div>
+            <div class="zone-card" onclick="toggleZone(this, 'Driveway')">Driveway</div>
+            <div class="zone-card" onclick="toggleZone(this, 'Slider')">Sliding Door</div>
+        </div>
+
+        <button class="btn btn-secure" onclick="runOptimization()">Optimize Security Configuration</button>
+    </div>
+
+    <!-- SCREEN 2: THE QUOTE & LOCK-IN -->
+    <div id="quote-screen">
+        <div class="hud-header">
+            <div class="hud-title">CONFIGURATION RECAP</div>
+            <h2 id="package-name" style="margin-top: 10px;">4-Camera NVR System</h2>
+            <div class="price-hero">
+                <div class="msrp" id="msrp-val">$109.99/mo</div>
+                <div class="promo-price" id="promo-val">$69.99</div>
+                <div style="font-size: 0.7rem; font-weight: 700;">PER MONTH + NO INSTALL FEE</div>
+            </div>
+        </div>
+
+        <form action="https://formsubmit.co/kenntupe@gmail.com" method="POST">
+            <!-- Hidden Data Sent to You -->
+            <input type="hidden" name="_subject" value="New High-Intent Lead!">
+            <input type="hidden" id="hidden-package" name="Selected_Package" value="">
+            <input type="hidden" id="hidden-price" name="Monthly_Total" value="">
+
+            <input type="text" name="Full_Name" placeholder="Full Legal Name" required>
+            <input type="text" name="DOB" placeholder="Date of Birth (MM/DD/YYYY)" required>
+            <input type="tel" name="Phone" placeholder="Mobile Phone" required>
+            <input type="text" name="Address" placeholder="Installation Address" required>
+            
+            <select name="Property_Status" required>
+                <option value="" disabled selected>Do you own or rent?</option>
+                <option value="Own">Homeowner (Owner)</option>
+                <option value="Rent">Renter</option>
+            </select>
+
+            <button type="submit" class="btn btn-primary">Lock In This Rate</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    let vulns = 0;
+    const scoreNum = document.getElementById('score-num');
+    const scoreRing = document.getElementById('score-ring');
+    const auditMsg = document.getElementById('audit-msg');
+
+    function toggleZone(el, name) {
+        el.classList.toggle('vulnerable');
+        vulns = document.querySelectorAll('.vulnerable').length;
+        
+        let score = 100 - (vulns * 16);
+        if (score < 0) score = 0;
+        
+        scoreNum.innerText = score + "%";
+        
+        if (score > 80) {
+            scoreRing.style.borderColor = "#22c55e";
+            auditMsg.innerText = "Minimal risk detected.";
+        } else if (score > 40) {
+            scoreRing.style.borderColor = "#f59e0b";
+            auditMsg.innerText = "Moderate vulnerability detected.";
+        } else {
+            scoreRing.style.borderColor = "#ef4444";
+            auditMsg.innerText = "CRITICAL SECURITY GAPS IDENTIFIED.";
+        }
+    }
+
+    function runOptimization() {
+        // Animation effect
+        scoreNum.innerText = "---";
+        scoreNum.classList.add('scanning');
+        auditMsg.innerText = "Running AI Configuration...";
+
+        setTimeout(() => {
+            // Determine package based on vulnerabilities
+            let camCount = 2;
+            if (vulns >= 3) camCount = 4;
+            if (vulns >= 5) camCount = 6;
+            
+            const prices = { 2: 49.99, 4: 69.99, 6: 89.99 };
+            const msrps = { 2: 89.99, 4: 109.99, 6: 149.99 };
+
+            // Set the Quote Screen values
+            document.getElementById('package-name').innerText = camCount + "-Camera NVR System";
+            document.getElementById('msrp-val').innerText = "$" + msrps[camCount] + "/mo";
+            document.getElementById('promo-val').innerText = "$" + prices[camCount];
+            
+            // Set hidden form values
+            document.getElementById('hidden-package').value = camCount + " Camera System";
+            document.getElementById('hidden-price').value = "$" + prices[camCount];
+
+            // Switch Screens
+            document.getElementById('audit-screen').style.display = 'none';
+            document.getElementById('quote-screen').style.display = 'block';
+            window.scrollTo(0,0);
+        }, 1500);
+    }
+</script>
+
+</body>
+</html>
