@@ -3,217 +3,113 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alder Field Audit | Shield_OS</title>
-  <!-- Load React and Three.js via ESM.sh for direct browser use -->
-  <script type="importmap">
-  {
-    "imports": {
-      "react": "https://esm.sh/react@18.2.0",
-      "react-dom": "https://esm.sh/react-dom@18.2.0",
-      "three": "https://esm.sh/three@0.160.0"
-    }
-  }
-  </script>
+  <title>SHIELD_OS v5.2 — Home Security Audit</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&family=Syncopate:wght@400;700&display=swap');
+    
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#050810;color:#e2e8f0;font-family:'Rajdhani',sans-serif;min-height:100vh;overflow-x:hidden}
+    input{font-family:'Rajdhani',sans-serif}
+    
+    @keyframes slide-up{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+    @keyframes blink{0%,49%,100%{opacity:1}50%{opacity:0}}
+    @keyframes glow-in{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+
+    .corner { position:fixed; width:20px; height:20px; pointer-events:none; z-index:200; border:1.5px solid rgba(0,212,255,0.6); }
+  </style>
 </head>
 <body>
   <div id="root"></div>
 
-  <script type="module">
-    import React, { useEffect, useRef, useState } from 'react';
-    import { createRoot } from 'react-dom';
-    import * as THREE from 'three';
-
-    /* --- Data Definition --- */
+  <script>
     const ZONES = [
-      { id: "front_door", label: "Front Door", risk: "HIGH", devices: ["Smart Lock", "Video Doorbell", "Motion Sensor"], price: 24.99, size: [0.65, 1.25, 0.1], pos: [0.3, 0.63, 1.56] },
-      { id: "living_window", label: "Living Window", risk: "MED", devices: ["Glass Break", "Window Sensor"], price: 12.99, size: [0.85, 0.5, 0.1], pos: [-1.3, 1.45, 1.56] },
-      { id: "garage_door", label: "Garage Door", risk: "HIGH", devices: ["Tilt Sensor", "Outdoor Camera"], price: 18.99, size: [1.5, 1.7, 0.1], pos: [3.2, 0.85, 1.56] },
-      { id: "back_door", label: "Back Door", risk: "HIGH", devices: ["Smart Lock", "Motion Camera"], price: 19.99, size: [0.65, 1.25, 0.1], pos: [-0.5, 0.63, -1.56] },
-      { id: "master_window", label: "Master Window", risk: "MED", devices: ["Window Sensor", "Motion Sensor"], price: 12.99, size: [0.85, 0.5, 0.1], pos: [1.0, 1.45, -1.56] },
-      { id: "side_gate", label: "Side Gate", risk: "MED", devices: ["Motion Sensor", "Contact Sensor"], price: 9.99, size: [0.1, 1.35, 0.8], pos: [-2.06, 0.68, -0.3] },
+      { id: "front_door",     label: "Front Door",     risk: "HIGH", devices: ["Smart Lock", "Video Doorbell", "Motion Sensor"], price: 24.99, size: [0.65, 1.25, 0.1], pos: [0.3,  0.63, 1.56]  },
+      { id: "living_window",  label: "Living Window",   risk: "MED",  devices: ["Glass Break", "Window Sensor"],                  price: 12.99, size: [0.85, 0.5,  0.1], pos: [-1.3, 1.45, 1.56]  },
+      { id: "garage_door",    label: "Garage Door",     risk: "HIGH", devices: ["Tilt Sensor", "Outdoor Camera"],                 price: 18.99, size: [1.5,  1.7,  0.1], pos: [3.2,  0.85, 1.56]  },
+      { id: "back_door",      label: "Back Door",       risk: "HIGH", devices: ["Smart Lock", "Motion Camera"],                   price: 19.99, size: [0.65, 1.25, 0.1], pos: [-0.5, 0.63, -1.56] },
+      { id: "master_window",  label: "Master Window",   risk: "MED",  devices: ["Window Sensor", "Motion Sensor"],                price: 12.99, size: [0.85, 0.5,  0.1], pos: [1.0,  1.45, -1.56] },
+      { id: "side_gate",      label: "Side Gate",       risk: "MED",  devices: ["Motion Sensor", "Contact Sensor"],               price: 9.99,  size: [0.1,  1.35, 0.8], pos: [-2.06, 0.68, -0.3] },
     ];
 
     const BASE = 29.99;
     const RISK = {
-      HIGH: { hex: 0xff3b5c, css: "#ff3b5c", bg: "rgba(255,59,92,0.1)", border: "rgba(255,59,92,0.4)" },
-      MED: { hex: 0xf59e0b, css: "#f59e0b", bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.35)" },
+      HIGH: { hex: 0xff3b5c, css: "#ff3b5c", bg: "rgba(255,59,92,0.1)",  border: "rgba(255,59,92,0.4)"  },
+      MED:  { hex: 0xf59e0b, css: "#f59e0b", bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.35)" },
     };
     const CYAN = 0x00d4ff;
     const GREEN = 0x10b981;
 
-    function App() {
-      const canvasRef = useRef(null);
-      const wrapRef = useRef(null);
-      const threeRef = useRef({});
-      const selRef = useRef(new Set());
-      const protRef = useRef(false);
+    let selected = new Set();
+    let protected_ = false;
+    let screen = "audit";
+    let activeZone = null;
+    let form = { name:"", address:"", email:"", phone:"" };
 
-      const [selected, setSelected] = useState(new Set());
-      const [protected_, setProtected_] = useState(false);
-      const [screen, setScreen] = useState("audit");
-      const [activeZone, setActiveZone] = useState(null);
-      const [form, setForm] = useState({ name: "", address: "", email: "", phone: "" });
+    let renderer, scene, camera, house, zoneMeshes = {}, clickTargets = [];
+    let threeRef = { prot: false };
 
-      const selRooms = ZONES.filter(z => selected.has(z.id));
-      const monthly = BASE + selRooms.reduce((a, z) => a + z.price, 0);
-      const integrity = Math.max(0, 100 - selected.size * 14);
-      const threatLvl = selected.size === 0 ? "LOW" : selected.size < 3 ? "MED" : "HIGH";
-      const threatClr = selected.size === 0 ? "#10b981" : selected.size < 3 ? "#f59e0b" : "#ff3b5c";
-
-      const refreshMats = (selSet, isProt) => {
-        const { zoneMeshes } = threeRef.current;
-        if (!zoneMeshes) return;
-        Object.entries(zoneMeshes).forEach(([id, m]) => {
-          if (isProt) {
-            m.material.emissive.setHex(GREEN);
-            m.material.emissiveIntensity = 0.7;
-            m.material.color.setHex(0x061a10);
-          } else if (selSet.has(id)) {
-            m.material.emissive.setHex(RISK[ZONES.find(z => z.id === id).risk].hex);
-            m.material.emissiveIntensity = 0.55;
-            m.material.color.setHex(0x1a0510);
-          } else {
-            m.material.emissive.setHex(CYAN);
-            m.material.emissiveIntensity = 0.12;
-            m.material.color.setHex(0x06121e);
-          }
-        });
-      };
-
-      const toggleZone = (id) => {
-        const next = new Set(selRef.current);
-        next.has(id) ? next.delete(id) : next.add(id);
-        selRef.current = next;
-        setSelected(new Set(next));
-        setActiveZone(id);
-        refreshMats(next, protRef.current);
-      };
-
-      const applyProtection = () => {
-        protRef.current = true;
-        setProtected_(true);
-        refreshMats(selRef.current, true);
-        setTimeout(() => setScreen("summary"), 1200);
-      };
-
-      useEffect(() => {
-        if (screen !== "audit") return;
-        const canvas = canvasRef.current;
-        const wrap = wrapRef.current;
-        if (!canvas || !wrap) return;
-
-        const W = wrap.clientWidth;
-        const H = 340;
-
-        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.setSize(W, H);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 0.85;
-
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 100);
-        camera.position.set(7.5, 5.5, 9);
-        camera.lookAt(1, 0.8, 0);
-
-        scene.add(new THREE.AmbientLight(0x1a2860, 1.2));
-        const sun = new THREE.DirectionalLight(0xddeeff, 1.4);
-        sun.position.set(8, 14, 8);
-        sun.castShadow = true;
-        scene.add(sun);
-
-        const house = new THREE.Group();
-        house.rotation.y = -0.22;
-        scene.add(house);
-
-        const box = (w, h, d, m, x, y, z) => {
-          const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
-          mesh.position.set(x, y, z);
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
-          house.add(mesh);
-          return mesh;
-        };
-
-        const mat = (col) => new THREE.MeshStandardMaterial({ color: col });
-        box(4, 2.5, 3, mat(0x1a2438), 0, 1.25, 0); // House
-        box(2.6, 2.0, 3, mat(0x141e32), 3.3, 1.0, 0); // Garage
-
-        const zoneMeshes = {};
-        const clickTargets = [];
-        ZONES.forEach(z => {
-          const m = new THREE.Mesh(
-            new THREE.BoxGeometry(...z.size),
-            new THREE.MeshStandardMaterial({
-              color: 0x06121e,
-              emissive: new THREE.Color(CYAN),
-              emissiveIntensity: 0.12,
-              transparent: true,
-              opacity: 0.92,
-            })
-          );
-          m.position.set(...z.pos);
-          m.userData.zoneId = z.id;
-          house.add(m);
-          zoneMeshes[z.id] = m;
-          clickTargets.push(m);
-        });
-
-        threeRef.current = { renderer, scene, camera, house, zoneMeshes };
-
-        const ray = new THREE.Raycaster();
-        const mouse2 = new THREE.Vector2();
-        
-        const onUp = e => {
-          const rect = canvas.getBoundingClientRect();
-          const x = e.clientX || e.changedTouches[0].clientX;
-          const y = e.clientY || e.changedTouches[0].clientY;
-          mouse2.x = ((x - rect.left) / rect.width) * 2 - 1;
-          mouse2.y = -((y - rect.top) / rect.height) * 2 + 1;
-          ray.setFromCamera(mouse2, camera);
-          const hits = ray.intersectObjects(clickTargets);
-          if (hits.length) toggleZone(hits[0].object.userData.zoneId);
-        };
-
-        canvas.addEventListener('mouseup', onUp);
-        canvas.addEventListener('touchend', onUp);
-
-        let raf;
-        const tick = () => {
-          raf = requestAnimationFrame(tick);
-          house.rotation.y += 0.004;
-          renderer.render(scene, camera);
-        };
-        tick();
-
-        return () => {
-          cancelAnimationFrame(raf);
-          renderer.dispose();
-        };
-      }, [screen]);
-
-      /* --- Screens Simplified for brevity --- */
-      if (screen === "audit") {
-        return React.createElement('div', { ref: wrapRef, style: { background: '#050810', minHeight: '100vh', color: 'white', padding: '20px' } }, 
-          React.createElement('h1', null, 'SHIELD_OS LIVE AUDIT'),
-          React.createElement('div', { style: { height: '340px', border: '1px solid #00d4ff', borderRadius: '10px', overflow: 'hidden' } }, 
-            React.createElement('canvas', { ref: canvasRef })
-          ),
-          React.createElement('div', null, `Integrity: ${integrity}%`),
-          React.createElement('button', { onClick: applyProtection, style: { background: '#10b981', padding: '15px', marginTop: '10px' } }, 'SECURE HOME')
-        );
-      }
-
-      return React.createElement('div', { style: { color: 'white', padding: '40px', textAlign: 'center' } }, 
-        React.createElement('h2', null, 'SECURED'),
-        React.createElement('p', null, `Monthly Rate: $${monthly.toFixed(2)}`)
-      );
+    function refreshMats() {
+      if (!zoneMeshes) return;
+      Object.entries(zoneMeshes).forEach(([id, m]) => {
+        if (protected_) {
+          m.material.emissive.setHex(GREEN);
+          m.material.emissiveIntensity = 0.7;
+          m.material.color.setHex(0x061a10);
+        } else if (selected.has(id)) {
+          const risk = ZONES.find(z=>z.id===id).risk;
+          m.material.emissive.setHex(RISK[risk].hex);
+          m.material.emissiveIntensity = 0.55;
+          m.material.color.setHex(0x1a0510);
+        } else {
+          m.material.emissive.setHex(CYAN);
+          m.material.emissiveIntensity = 0.12;
+          m.material.color.setHex(0x06121e);
+        }
+      });
     }
 
-    const root = createRoot(document.getElementById('root'));
-    root.render(React.createElement(App));
-  </script>
-</body>
-</html>
+    function toggleZone(id) {
+      if (selected.has(id)) selected.delete(id);
+      else selected.add(id);
+      activeZone = id;
+      refreshMats();
+      render();
+    }
+
+    function applyProtection() {
+      protected_ = true;
+      threeRef.prot = true;
+      refreshMats();
+      setTimeout(() => { screen = "summary"; render(); }, 800);
+    }
+
+    // ====================== THREE.JS SETUP ======================
+    function initThree() {
+      const wrap = document.getElementById('three-wrap');
+      if (!wrap) return;
+      const canvas = document.createElement('canvas');
+      wrap.innerHTML = '';
+      wrap.appendChild(canvas);
+
+      const W = wrap.clientWidth;
+      const H = 340;
+
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(W, H);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 0.85;
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(40, W/H, 0.1, 100);
+      camera.position.set(7.5, 5.5, 9);
+      camera.lookAt(1, 0.8, 0);
+
+      // Lights, house, zones... (full setup from your original)
+      scene.add(new THREE.AmbientLight(0x1a2860, 1.2));
+      const sun = new THREE.DirectionalLight(0xddeeff, 1.4);
+      sun.position.set(8, 14, 8);
+​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​
