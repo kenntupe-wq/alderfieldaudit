@@ -1,94 +1,163 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SHIELD_OS v5.2.1 — Home Audit</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&family=Syncopate:wght@400;700&display=swap');
+    
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body {
+      background: #050810;
+      color: #e2e8f0;
+      font-family: 'Rajdhani', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-const ROOMS = [
-  { id: "front_door", label: "Front Door", icon: "⬛", risk: "HIGH", devices: ["Smart Lock", "Video Doorbell", "Motion Sensor"], price: 24.99, col: 2, row: 1 },
-  { id: "garage", label: "Garage", icon: "⬛", risk: "HIGH", devices: ["Garage Sensor", "Camera"], price: 18.99, col: 1, row: 1 },
-  { id: "living", label: "Living Room", icon: "⬛", risk: "MED", devices: ["Motion Sensor", "Glass Break"], price: 14.99, col: 1, row: 2 },
-  { id: "kitchen", label: "Kitchen", icon: "⬛", risk: "LOW", devices: ["Smoke + CO Sensor"], price: 9.99, col: 2, row: 2 },
-  { id: "master", label: "Master Bed", icon: "⬛", risk: "MED", devices: ["Motion Sensor", "Window Sensor"], price: 12.99, col: 3, row: 1 },
-  { id: "bedroom2", label: "Bedroom 2", icon: "⬛", risk: "LOW", devices: ["Window Sensor"], price: 7.99, col: 3, row: 2 },
-  { id: "backyard", label: "Back Yard", icon: "⬛", risk: "HIGH", devices: ["Outdoor Camera", "Floodlight"], price: 19.99, col: 2, row: 3 },
-  { id: "basement", label: "Basement", icon: "⬛", risk: "HIGH", devices: ["Flood Sensor", "Camera"], price: 16.99, col: 1, row: 3 },
-  { id: "driveway", label: "Driveway", icon: "⬛", risk: "MED", devices: ["Outdoor Camera"], price: 14.99, col: 3, row: 3 },
-];
+    @keyframes flicker { 0%,100%{opacity:1} 50%{opacity:0.85} }
+    @keyframes slide-up { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-const RISK_COLORS = {
-  HIGH: { border: "#ff3b5c", bg: "rgba(255,59,92,0.12)", glow: "rgba(255,59,92,0.3)", label: "#ff3b5c" },
-  MED: { border: "#f59e0b", bg: "rgba(245,158,11,0.1)", glow: "rgba(245,158,11,0.2)", label: "#f59e0b" },
-  LOW: { border: "#10b981", bg: "rgba(16,185,129,0.08)", glow: "rgba(16,185,129,0.15)", label: "#10b981" },
-};
+    .noise {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0.04; pointer-events: none; z-index: 0;
+      background: repeating-linear-gradient(45deg, transparent, transparent 4px, #111 4px, #111 8px);
+    }
 
-const BASE_PRICE = 29.99;
+    .zone {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      transition: all 0.2s;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .zone:hover, .zone.active {
+      border-color: #00d4ff;
+      box-shadow: 0 0 15px rgba(0,212,255,0.4);
+    }
+    .zone.active {
+      background: rgba(255,59,92,0.15);
+      border-color: #ff3b5c;
+    }
+  </style>
+</head>
+<body>
+  <div class="noise"></div>
+  <div id="root"></div>
 
-function Noise() {
-  return (
-    <svg style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", opacity: 0.03, pointerEvents: "none", zIndex: 0 }}>
-      <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-      <rect width="100%" height="100%" filter="url(#noise)" />
-    </svg>
-  );
-}
+  <script>
+    const ROOMS = [ /* paste your full ROOMS array here */ ];
+    // ... RISK_COLORS and BASE_PRICE ...
 
-function RadarPing({ active }) {
-  if (!active) return null;
-  return (
-    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", pointerEvents: "none", zIndex: 10 }}>
-      {[0, 1, 2].map(i => (
-        <div key={i} style={{
-          position: "absolute",
-          width: 60 + i * 40,
-          height: 60 + i * 40,
-          borderRadius: "50%",
-          border: "1px solid #00d4ff",
-          top: "50%", left: "50%",
-          transform: "translate(-50%,-50%)",
-          animation: `radar-ping 2s ease-out ${i * 0.5}s infinite`,
-          opacity: 0,
-        }} />
-      ))}
-    </div>
-  );
-}
+    let selected = new Set();
+    let screen = "audit";
+    let scanY = 0;
+    let hoveredRoom = null;
+    let form = { name: "", address: "", email: "", phone: "" };
 
-const IntegrityArc = ({ score }) => {
-  const r = 38; const circ = 2 * Math.PI * r;
-  const dash = (score / 100) * circ;
-  const color = score > 60 ? "#00d4ff" : score > 30 ? "#f59e0b" : "#ff3b5c";
-  return (
-    <svg width="100" height="100" style={{ transform: "rotate(-90deg)" }} aria-hidden>
-      <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-      <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="6"
-        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
-        style={{ transition: "stroke-dasharray 0.5s ease, stroke 0.5s ease", filter: `drop-shadow(0 0 6px ${color})` }}
-      />
-      <g transform="rotate(90 50 50)">
-        <text x="50" y="50" textAnchor="middle" dominantBaseline="middle"
-          style={{ fill: color, fontFamily: "Share Tech Mono, monospace", fontSize: 13 }}>
-          {score}%
-        </text>
-      </g>
-    </svg>
-  );
-};
+    function toggleRoom(id) {
+      if (selected.has(id)) selected.delete(id);
+      else selected.add(id);
+      render();
+    }
 
-export default function App() {
-  const [selected, setSelected] = useState(new Set());
-  const [screen, setScreen] = useState("audit"); // audit | summary | quote | submitted
-  const [scanY, setScanY] = useState(0);
-  const [form, setForm] = useState({ name: "", address: "", email: "", phone: "" });
-  const [submitted, setSubmitted] = useState(false);
-  const [hoveredRoom, setHoveredRoom] = useState(null);
-  const scanRef = useRef({ y: 0, raf: null, intervalId: null });
+    function getMonthly() {
+      return 29.99 + Array.from(selected).reduce((sum, id) => {
+        const r = ROOMS.find(room => room.id === id);
+        return sum + (r ? r.price : 0);
+      }, 0);
+    }
 
-  useEffect(() => {
-    // use setInterval but keep id in ref and clean up
-    scanRef.current.intervalId = setInterval(() => {
-      scanRef.current.y = (scanRef.current.y + 0.4) % 100;
-      setScanY(scanRef.current.y);
-    }, 30);
-    return () => {
-      if (scanRef.current.intervalId) clearInterval(scanRef.current.intervalId);
-    };
-  }, []);
+    // Scan line
+    setInterval(() => {
+      scanY = (scanY + 0.8) % 100;
+      if (screen === "audit") render();
+    }, 40);
 
-  const toggleRoom = (id
+    function render() {
+      const root = document.getElementById("root");
+      const totalMonthly = getMonthly();
+      const integrityScore = Math.max(0, 100 - selected.size * 10);
+      const selectedRooms = ROOMS.filter(r => selected.has(r.id));
+
+      if (screen === "audit") {
+        let html = `
+          <div style="max-width:480px;margin:0 auto;padding:20px;position:relative;z-index:1">
+            <div style="margin-bottom:25px">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:10;color:#00d4ff">SHIELD_OS v5.2.1</div>
+              <div style="font-family:'Syncopate',sans-serif;font-size:21;font-weight:700">HOME VULNERABILITY AUDIT</div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
+              <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(0,212,255,0.2);border-radius:10;padding:12px;text-align:center">
+                <div style="font-size:9;color:#aaa">INTEGRITY</div>
+                <div style="font-size:26;color:#00d4ff">${integrityScore}%</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,59,92,0.2);border-radius:10;padding:12px;text-align:center">
+                <div style="font-size:9;color:#aaa">GAPS</div>
+                <div style="font-size:26;color:#ff3b5c">${selected.size}</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(245,158,11,0.2);border-radius:10;padding:12px;text-align:center">
+                <div style="font-size:9;color:#aaa">THREAT</div>
+                <div style="font-size:22;color:#f59e0b">${selected.size >= 4 ? 'HIGH' : selected.size > 0 ? 'MED' : 'LOW'}</div>
+              </div>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.1);border-radius:16;padding:16px;position:relative;overflow:hidden">
+              <div style="position:absolute;left:0;right:0;height:3px;top:${scanY}%;background:linear-gradient(90deg,transparent,#00d4ff,transparent);z-index:5"></div>
+              
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;height:310px">
+        `;
+
+        ROOMS.forEach(room => {
+          const isActive = selected.has(room.id);
+          const rc = RISK_COLORS[room.risk];
+          html += `
+            <div class="zone ${isActive ? 'active' : ''}" data-id="${room.id}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;text-align:center">
+              <div style="font-size:13px;font-weight:700;color:${isActive ? rc.label : '#ccc'}">${room.label}</div>
+              ${isActive ? `<div style="font-size:10px;color:${rc.label};margin-top:4px">${room.risk}</div>` : ''}
+            </div>`;
+        });
+
+        html += `
+              </div>
+            </div>
+
+            <button id="analyzeBtn" style="width:100%;margin-top:25px;padding:18px;background:${selected.size > 0 ? 'linear-gradient(135deg,#00d4ff,#0088cc)' : '#1f283f'};color:${selected.size > 0 ? '#050810' : '#777'};border:none;border-radius:10;font-weight:700">
+              ${selected.size > 0 ? `ANALYZE ${selected.size} ZONE${selected.size > 1 ? 'S' : ''} →` : 'SELECT ZONES TO BEGIN'}
+            </button>
+          </div>
+        `;
+
+        root.innerHTML = html;
+
+        // Add click listeners after rendering
+        document.querySelectorAll('.zone').forEach(el => {
+          el.addEventListener('click', () => {
+            toggleRoom(el.dataset.id);
+          });
+        });
+
+        document.getElementById('analyzeBtn').addEventListener('click', () => {
+          if (selected.size > 0) {
+            screen = "summary";
+            render();
+          }
+        });
+      } 
+      else if (screen === "summary") {
+        // Summary screen with Integrity Arc (add your full version here)
+        root.innerHTML = `<div style="padding:20px"><h2 style="color:#00d4ff">Summary Screen</h2><button onclick="screen='audit';render()">Back</button></div>`;
+      }
+      // Add quote and submitted screens similarly
+    }
+
+    window.onload = render;
+  </script>
+</body>
+</html>
