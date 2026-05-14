@@ -3,204 +3,200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tactical Site Audit | Security Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <title>Tactical HUD | Security Audit</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Inter:wght@300;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #08090b;
-            --card: #0f1115;
-            --primary: #1d6fe8;
-            --accent: #22c55e;
-            --danger: #ef4444;
-            --text: #ffffff;
-            --subtext: #6b7280;
+            --cyan: #00f2ff;
+            --danger: #ff0055;
+            --bg: #05070a;
+            --panel: #0d1117;
         }
 
         body {
-            background-color: var(--bg);
-            color: var(--text);
+            background: var(--bg);
+            color: white;
             font-family: 'Inter', sans-serif;
             margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
+            overflow-x: hidden;
         }
 
-        .container { width: 100%; max-width: 450px; }
-
-        /* UI Elements */
-        .hud-header { text-align: center; margin-bottom: 30px; }
-        .hud-title { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 2px; font-size: 0.8rem; color: var(--primary); }
-        
-        .score-circle {
-            width: 150px; height: 150px; border-radius: 50%;
-            border: 4px solid var(--danger);
-            margin: 20px auto;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: 0.5s;
-        }
-        .score-val { font-size: 3.5rem; font-weight: 900; line-height: 1; }
-        .score-label { font-size: 0.7rem; color: var(--subtext); text-transform: uppercase; }
-
-        /* Audit Grid */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 30px; }
-        .zone-card {
-            background: var(--card);
-            border: 1px solid #222;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .zone-card.vulnerable { border-color: var(--danger); background: rgba(239, 68, 68, 0.1); color: var(--danger); }
-        .zone-card.protected { border-color: var(--accent); background: rgba(34, 197, 94, 0.1); color: var(--accent); }
-
-        /* Quote Section (Hidden initially) */
-        #quote-screen { display: none; }
-        .price-hero { background: var(--primary); padding: 20px; border-radius: 15px; text-align: center; margin: 20px 0; }
-        .msrp { text-decoration: line-through; opacity: 0.6; font-size: 0.9rem; }
-        .promo-price { font-size: 3rem; font-weight: 900; }
-
-        /* Inputs */
-        input, select {
-            width: 100%; padding: 15px; margin-bottom: 10px; border-radius: 8px;
-            border: 1px solid #333; background: #161820; color: white; font-size: 1rem;
+        /* Tactical HUD Elements */
+        .hud-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            border: 20px solid rgba(0, 242, 255, 0.05);
             box-sizing: border-box;
+            z-index: 100;
         }
 
-        .btn {
-            width: 100%; padding: 20px; border: none; border-radius: 12px;
-            font-weight: 900; font-size: 1.1rem; text-transform: uppercase; cursor: pointer;
+        .container { max-width: 500px; margin: auto; padding: 20px; position: relative; }
+
+        header { text-align: left; margin-bottom: 20px; border-left: 3px solid var(--cyan); padding-left: 15px; }
+        h1 { font-family: 'Orbitron', sans-serif; font-size: 1rem; letter-spacing: 2px; margin: 0; color: var(--cyan); }
+        .coords { font-family: monospace; font-size: 0.7rem; opacity: 0.5; }
+
+        /* The Blueprint Map */
+        .map-container {
+            position: relative;
+            background: var(--panel);
+            border: 1px solid #1a212e;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .blueprint {
+            width: 100%;
+            height: 300px;
+            display: grid;
+            grid-template-areas: 
+                "garage garage front"
+                "living living front"
+                "bed master master";
+            gap: 10px;
+        }
+
+        .room {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
             transition: 0.3s;
+            position: relative;
         }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-secure { background: var(--accent); color: white; }
 
-        /* Animations */
-        @keyframes scan {
-            0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; }
+        .room:hover { background: rgba(0, 242, 255, 0.05); }
+
+        .room.vulnerable {
+            border-color: var(--danger);
+            background: rgba(255, 0, 85, 0.15);
+            color: var(--danger);
+            box-shadow: inset 0 0 15px rgba(255, 0, 85, 0.2);
         }
-        .scanning { animation: scan 1s infinite; }
+
+        /* Scanning Line Animation */
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 242, 255, 0.3);
+            top: 0;
+            animation: scan 4s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        .status-box {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .stat-label { font-size: 0.6rem; color: var(--cyan); text-transform: uppercase; display: block; }
+        .stat-value { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; }
+
+        .btn-action {
+            width: 100%;
+            padding: 20px;
+            background: var(--cyan);
+            color: black;
+            border: none;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            border-radius: 5px;
+            cursor: pointer;
+            clip-path: polygon(0 0, 95% 0, 100% 30%, 100% 100%, 5% 100%, 0 70%);
+        }
+
+        /* Screen 2 Styles */
+        #quote-screen { display: none; }
+        .price-card { background: #111; border: 1px solid var(--cyan); padding: 30px; text-align: center; border-radius: 10px; }
+
     </style>
 </head>
 <body>
 
-<div class="container">
-    
-    <!-- SCREEN 1: THE AUDIT -->
-    <div id="audit-screen">
-        <div class="hud-header">
-            <div class="hud-title">SYSTEM VULNERABILITY SCAN v4.0</div>
-            <div class="score-circle" id="score-ring">
-                <span class="score-val" id="score-num">100%</span>
-                <span class="score-label">Secure</span>
-            </div>
-            <p id="audit-msg" style="color: var(--subtext); font-size: 0.9rem;">Select entry points to assess risk...</p>
-        </div>
+<div class="hud-overlay"></div>
 
-        <div class="grid">
-            <div class="zone-card" onclick="toggleZone(this, 'Garage')">Garage</div>
-            <div class="zone-card" onclick="toggleZone(this, 'Front Door')">Front Door</div>
-            <div class="zone-card" onclick="toggleZone(this, 'Side Gate')">Side Gate</div>
-            <div class="zone-card" onclick="toggleZone(this, 'Back Yard')">Back Yard</div>
-            <div class="zone-card" onclick="toggleZone(this, 'Driveway')">Driveway</div>
-            <div class="zone-card" onclick="toggleZone(this, 'Slider')">Sliding Door</div>
-        </div>
+<div class="container" id="audit-screen">
+    <header>
+        <h1>SITE_AUDIT_V5.0</h1>
+        <div class="coords">NODE_ID: SLC_801 // STATUS: ACTIVE_SCAN</div>
+    </header>
 
-        <button class="btn btn-secure" onclick="runOptimization()">Optimize Security Configuration</button>
+    <div class="map-container">
+        <div class="scan-line"></div>
+        <div class="blueprint">
+            <div class="room" style="grid-area: garage;" onclick="tag(this)">Garage</div>
+            <div class="room" style="grid-area: front;" onclick="tag(this)">Entry</div>
+            <div class="room" style="grid-area: living;" onclick="tag(this)">Living</div>
+            <div class="room" style="grid-area: bed;" onclick="tag(this)">Bedroom</div>
+            <div class="room" style="grid-area: master;" onclick="tag(this)">Master</div>
+        </div>
     </div>
 
-    <!-- SCREEN 2: THE QUOTE & LOCK-IN -->
-    <div id="quote-screen">
-        <div class="hud-header">
-            <div class="hud-title">CONFIGURATION RECAP</div>
-            <h2 id="package-name" style="margin-top: 10px;">4-Camera NVR System</h2>
-            <div class="price-hero">
-                <div class="msrp" id="msrp-val">$109.99/mo</div>
-                <div class="promo-price" id="promo-val">$69.99</div>
-                <div style="font-size: 0.7rem; font-weight: 700;">PER MONTH + NO INSTALL FEE</div>
-            </div>
+    <div class="status-box">
+        <div>
+            <span class="stat-label">Integrity</span>
+            <span class="stat-value" id="score">100%</span>
         </div>
-
-        <form action="https://formsubmit.co/kenntupe@gmail.com" method="POST">
-            <!-- Hidden Data Sent to You -->
-            <input type="hidden" name="_subject" value="New High-Intent Lead!">
-            <input type="hidden" id="hidden-package" name="Selected_Package" value="">
-            <input type="hidden" id="hidden-price" name="Monthly_Total" value="">
-
-            <input type="text" name="Full_Name" placeholder="Full Legal Name" required>
-            <input type="text" name="DOB" placeholder="Date of Birth (MM/DD/YYYY)" required>
-            <input type="tel" name="Phone" placeholder="Mobile Phone" required>
-            <input type="text" name="Address" placeholder="Installation Address" required>
-            
-            <select name="Property_Status" required>
-                <option value="" disabled selected>Do you own or rent?</option>
-                <option value="Own">Homeowner (Owner)</option>
-                <option value="Rent">Renter</option>
-            </select>
-
-            <button type="submit" class="btn btn-primary">Lock In This Rate</button>
-        </form>
+        <div style="text-align: right;">
+            <span class="stat-label">Detected Gaps</span>
+            <span class="stat-value" id="gaps">00</span>
+        </div>
     </div>
+
+    <button class="btn-action" onclick="finalize()">Initialize Solution</button>
+</div>
+
+<div class="container" id="quote-screen">
+    <header>
+        <h1>OPTIMIZED_CONFIG</h1>
+    </header>
+    <div class="price-card">
+        <div style="font-size: 0.8rem; opacity: 0.6; text-decoration: line-through;">MSRP: $109.99</div>
+        <div style="font-size: 3.5rem; font-family: 'Orbitron', sans-serif; color: var(--cyan);">$69.99</div>
+        <div style="font-size: 0.7rem; letter-spacing: 2px;">PER MONTH / SECURED RATE</div>
+    </div>
+    <p style="text-align: center; font-size: 0.8rem; margin: 20px 0;">Submit details to lock this configuration to your address.</p>
+    <!-- Add your form here -->
 </div>
 
 <script>
-    let vulns = 0;
-    const scoreNum = document.getElementById('score-num');
-    const scoreRing = document.getElementById('score-ring');
-    const auditMsg = document.getElementById('audit-msg');
-
-    function toggleZone(el, name) {
+    let vulnPoints = 0;
+    function tag(el) {
         el.classList.toggle('vulnerable');
-        vulns = document.querySelectorAll('.vulnerable').length;
-        
-        let score = 100 - (vulns * 16);
-        if (score < 0) score = 0;
-        
-        scoreNum.innerText = score + "%";
-        
-        if (score > 80) {
-            scoreRing.style.borderColor = "#22c55e";
-            auditMsg.innerText = "Minimal risk detected.";
-        } else if (score > 40) {
-            scoreRing.style.borderColor = "#f59e0b";
-            auditMsg.innerText = "Moderate vulnerability detected.";
-        } else {
-            scoreRing.style.borderColor = "#ef4444";
-            auditMsg.innerText = "CRITICAL SECURITY GAPS IDENTIFIED.";
-        }
+        vulnPoints = document.querySelectorAll('.vulnerable').length;
+        document.getElementById('gaps').innerText = vulnPoints.toString().padStart(2, '0');
+        let score = 100 - (vulnPoints * 18);
+        document.getElementById('score').innerText = (score < 0 ? 0 : score) + "%";
+        document.getElementById('score').style.color = score < 50 ? '#ff0055' : '#00f2ff';
     }
 
-    function runOptimization() {
-        // Animation effect
-        scoreNum.innerText = "---";
-        scoreNum.classList.add('scanning');
-        auditMsg.innerText = "Running AI Configuration...";
-
+    function finalize() {
+        if(vulnPoints === 0) {
+            alert("Select vulnerable entry points first.");
+            return;
+        }
+        document.querySelector('.btn-action').innerText = "CALCULATING...";
         setTimeout(() => {
-            // Determine package based on vulnerabilities
-            let camCount = 2;
-            if (vulns >= 3) camCount = 4;
-            if (vulns >= 5) camCount = 6;
-            
-            const prices = { 2: 49.99, 4: 69.99, 6: 89.99 };
-            const msrps = { 2: 89.99, 4: 109.99, 6: 149.99 };
-
-            // Set the Quote Screen values
-            document.getElementById('package-name').innerText = camCount + "-Camera NVR System";
-            document.getElementById('msrp-val').innerText = "$" + msrps[camCount] + "/mo";
-            document.getElementById('promo-val').innerText = "$" + prices[camCount];
-            
-            // Set hidden form values
-            document.getElementById('hidden-package').value = camCount + " Camera System";
-            document.getElementById('hidden-price').value = "$" + prices[camCount];
-
-            // Switch Screens
             document.getElementById('audit-screen').style.display = 'none';
             document.getElementById('quote-screen').style.display = 'block';
-            window.scrollTo(0,0);
-        }, 1500);
+        }, 1200);
     }
 </script>
 
