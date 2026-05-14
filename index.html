@@ -1139,18 +1139,65 @@ function App(){
           </span>
         </div>
 
-        <div
-          style={{
-            fontFamily:"'Syncopate',sans-serif",
-            fontSize:"clamp(18px,5vw,20px)",
-            lineHeight:1.15,
-            marginBottom:6
-          }}
-        >
-          HOME SECURITY
-          <br/>
-          VULNERABILITY AUDIT
-        </div>
+<div
+  style={{
+    fontFamily:"'Syncopate',sans-serif",
+    fontSize:"clamp(18px,5vw,20px)",
+    lineHeight:1.15,
+    marginBottom:10
+  }}
+>
+  HOME SECURITY
+  <br/>
+  VULNERABILITY AUDIT
+</div>
+
+<div
+  className="fade"
+  style={{
+    display:"inline-flex",
+    alignItems:"center",
+    gap:8,
+    background:"rgba(0,212,255,.06)",
+    border:"1px solid rgba(0,212,255,.2)",
+    borderRadius:10,
+    padding:"8px 14px",
+    marginBottom:18,
+    boxShadow:"0 0 20px rgba(0,212,255,.08)"
+  }}
+>
+
+  <div
+    className="pulse"
+    style={{
+      width:8,
+      height:8,
+      borderRadius:"50%",
+      background:"#00d4ff",
+      flexShrink:0
+    }}
+  />
+
+  <div
+    style={{
+      fontFamily:"'Share Tech Mono',monospace",
+      fontSize:11,
+      color:"rgba(255,255,255,.75)",
+      letterSpacing:1
+    }}
+  >
+    PROPERTY:
+    <span
+      style={{
+        color:"#00d4ff",
+        marginLeft:8
+      }}
+    >
+      {street.toUpperCase()}
+    </span>
+  </div>
+
+</div>
 
       </div>
 
