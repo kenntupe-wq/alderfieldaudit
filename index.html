@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
   <title>Alder Home Security Audit</title>
 
@@ -16,7 +16,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
-    *, *::before, *::after{
+    *,
+    *::before,
+    *::after{
       margin:0;
       padding:0;
       box-sizing:border-box;
@@ -29,7 +31,8 @@
       overflow-x:hidden;
     }
 
-    button,input{
+    button,
+    input{
       font-family:inherit;
     }
 
@@ -59,21 +62,12 @@
       100%{top:100%;}
     }
 
-    @keyframes blink{
-      0%,100%{opacity:1;}
-      50%{opacity:0;}
-    }
-
     .fade{
       animation:fadeUp .45s ease both;
     }
 
     .pulse{
       animation:pulse 1.2s infinite;
-    }
-
-    .blink{
-      animation:blink 1s infinite;
     }
 
     input::placeholder{
@@ -307,7 +301,6 @@ function IntroScreen({ onSubmit }){
         style={{
           minHeight:"100vh",
           display:"flex",
-          flexDirection:"column",
           justifyContent:"center",
           alignItems:"center",
           padding:24
@@ -335,8 +328,7 @@ function IntroScreen({ onSubmit }){
               borderRadius:16,
               padding:24,
               position:"relative",
-              overflow:"hidden",
-              marginBottom:20
+              overflow:"hidden"
             }}
           >
 
@@ -365,28 +357,6 @@ function IntroScreen({ onSubmit }){
 
             <div
               style={{
-                fontFamily:"'Share Tech Mono',monospace",
-                fontSize:12,
-                color:"rgba(255,255,255,.5)",
-                marginBottom:8
-              }}
-            >
-              TARGET
-            </div>
-
-            <div
-              style={{
-                fontFamily:"'Share Tech Mono',monospace",
-                fontSize:16,
-                color:"white",
-                marginBottom:24
-              }}
-            >
-              {getStreet(address).toUpperCase()}
-            </div>
-
-            <div
-              style={{
                 display:"flex",
                 flexDirection:"column",
                 gap:10
@@ -402,8 +372,7 @@ function IntroScreen({ onSubmit }){
                       display:"flex",
                       alignItems:"center",
                       gap:10,
-                      opacity:i <= scanStep ? 1 : .2,
-                      transition:"opacity .3s"
+                      opacity:i <= scanStep ? 1 : .2
                     }}
                   >
 
@@ -417,12 +386,7 @@ function IntroScreen({ onSubmit }){
                           ? "#10b981"
                           : i === scanStep
                           ? "#00d4ff"
-                          : "rgba(255,255,255,.15)",
-                        flexShrink:0,
-                        animation:
-                          i === scanStep
-                          ? "pulse .8s infinite"
-                          : "none"
+                          : "rgba(255,255,255,.15)"
                       }}
                     />
 
@@ -465,7 +429,6 @@ function IntroScreen({ onSubmit }){
       style={{
         minHeight:"100vh",
         display:"flex",
-        flexDirection:"column",
         justifyContent:"center",
         alignItems:"center",
         padding:24
@@ -499,7 +462,6 @@ function IntroScreen({ onSubmit }){
           style={{
             fontFamily:"'Syncopate',sans-serif",
             fontSize:"clamp(18px,5vw,22px)",
-            fontWeight:700,
             lineHeight:1.2,
             marginBottom:8
           }}
@@ -524,23 +486,11 @@ function IntroScreen({ onSubmit }){
 
           <div style={{marginBottom:12}}>
 
-            <div
-              style={{
-                fontFamily:"'Share Tech Mono',monospace",
-                fontSize:10,
-                color:"rgba(255,255,255,.35)",
-                marginBottom:8,
-                letterSpacing:2
-              }}
-            >
-              YOUR NAME
-            </div>
-
             <input
               ref={nameRef}
               required
               type="text"
-              placeholder="First & Last Name"
+              placeholder="Full Name"
               value={name}
               onChange={(e)=>setName(e.target.value)}
               style={{
@@ -557,18 +507,6 @@ function IntroScreen({ onSubmit }){
           </div>
 
           <div style={{marginBottom:20}}>
-
-            <div
-              style={{
-                fontFamily:"'Share Tech Mono',monospace",
-                fontSize:10,
-                color:"rgba(255,255,255,.35)",
-                marginBottom:8,
-                letterSpacing:2
-              }}
-            >
-              HOME ADDRESS
-            </div>
 
             <input
               required
@@ -596,21 +534,10 @@ function IntroScreen({ onSubmit }){
               padding:18,
               borderRadius:12,
               border:"none",
-              background:
-                name.trim() && address.trim()
-                ? "linear-gradient(135deg,#00d4ff,#0099cc)"
-                : "rgba(255,255,255,.07)",
-              color:
-                name.trim() && address.trim()
-                ? "#050810"
-                : "rgba(255,255,255,.3)",
+              background:"linear-gradient(135deg,#00d4ff,#0099cc)",
+              color:"#050810",
               fontWeight:700,
-              fontSize:14,
-              cursor:
-                name.trim() && address.trim()
-                ? "pointer"
-                : "default",
-              letterSpacing:1,
+              cursor:"pointer",
               boxShadow:"0 0 30px rgba(0,212,255,.25)"
             }}
           >
@@ -641,10 +568,6 @@ function App(){
 
   const [scanY,setScanY] = useState(0);
 
-  const [minutes,setMinutes] = useState(14);
-
-  const [seconds,setSeconds] = useState(59);
-
   useEffect(()=>{
 
     const iv = setInterval(()=>{
@@ -656,42 +579,6 @@ function App(){
     return ()=>clearInterval(iv);
 
   },[]);
-
-  useEffect(()=>{
-
-    if(screen !== "summary"){
-      return;
-    }
-
-    const timer = setInterval(()=>{
-
-      setSeconds(prev=>{
-
-        if(prev === 0){
-
-          setMinutes(m=>{
-
-            if(m === 0){
-              clearInterval(timer);
-              return 0;
-            }
-
-            return m - 1;
-
-          });
-
-          return 59;
-        }
-
-        return prev - 1;
-
-      });
-
-    },1000);
-
-    return ()=>clearInterval(timer);
-
-  },[screen]);
 
   const handleIntroSubmit = (name,address)=>{
 
@@ -739,371 +626,7 @@ function App(){
     100 - selected.size * 10
   );
 
-  const yearlySavings =
-    ((totalMonthly * 1.42) - totalMonthly) * 12;
-
-  const firstName = getFirstName(customerName);
-
   const street = getStreet(customerAddress);
-
-  if(screen === "success"){
-
-    return(
-
-      <div
-        className="fade"
-        style={{
-          minHeight:"100vh",
-          display:"flex",
-          justifyContent:"center",
-          alignItems:"center",
-          padding:20
-        }}
-      >
-
-        <div
-          style={{
-            maxWidth:450,
-            width:"100%",
-            background:"rgba(255,255,255,.03)",
-            border:"1px solid rgba(255,255,255,.08)",
-            borderRadius:18,
-            padding:30,
-            textAlign:"center"
-          }}
-        >
-
-          <div
-            style={{
-              width:90,
-              height:90,
-              borderRadius:"50%",
-              margin:"0 auto 24px",
-              display:"flex",
-              alignItems:"center",
-              justifyContent:"center",
-              background:"rgba(0,212,255,.1)",
-              border:"2px solid #00d4ff",
-              fontSize:42,
-              color:"#00d4ff"
-            }}
-          >
-            ✓
-          </div>
-
-          <div
-            style={{
-              fontFamily:"'Syncopate',sans-serif",
-              fontSize:"clamp(18px,5vw,22px)",
-              marginBottom:6
-            }}
-          >
-            SYSTEM RESERVED
-          </div>
-
-          <div
-            style={{
-              color:"rgba(255,255,255,.5)",
-              fontSize:13,
-              marginBottom:16,
-              fontFamily:"'Share Tech Mono',monospace"
-            }}
-          >
-            {street.toUpperCase()}
-          </div>
-
-          <div
-            style={{
-              color:"rgba(255,255,255,.7)",
-              lineHeight:1.6,
-              marginBottom:24
-            }}
-          >
-            {firstName}, your same-day Alder installation pricing has been locked in.
-          </div>
-
-          <div
-            style={{
-              background:"rgba(0,212,255,.05)",
-              border:"1px solid rgba(0,212,255,.2)",
-              borderRadius:14,
-              padding:20,
-              marginBottom:20
-            }}
-          >
-
-            <div
-              style={{
-                color:"#00d4ff",
-                marginBottom:8,
-                fontSize:12
-              }}
-            >
-              ESTIMATED MONTHLY
-            </div>
-
-            <div
-              style={{
-                fontSize:42,
-                fontWeight:700
-              }}
-            >
-              ${totalMonthly.toFixed(2)}
-            </div>
-
-          </div>
-
-          <button
-            onClick={()=>{
-              window.location.href =
-              "https://kennethatalderquote.pages.dev";
-            }}
-            style={{
-              width:"100%",
-              padding:18,
-              borderRadius:12,
-              border:"none",
-              background:"linear-gradient(135deg,#00d4ff,#0099cc)",
-              color:"#050810",
-              fontWeight:700,
-              cursor:"pointer",
-              boxShadow:"0 0 30px rgba(0,212,255,.25)"
-            }}
-          >
-            VIEW FULL PACKAGE →
-          </button>
-
-        </div>
-
-      </div>
-
-    );
-
-  }
-
-  if(screen === "summary"){
-
-    return(
-
-      <div
-        className="fade"
-        style={{
-          maxWidth:500,
-          margin:"0 auto",
-          padding:20
-        }}
-      >
-
-        <button
-          onClick={()=>setScreen("audit")}
-          style={{
-            marginBottom:18,
-            background:"transparent",
-            border:"1px solid rgba(255,255,255,.15)",
-            color:"white",
-            padding:"8px 14px",
-            borderRadius:10,
-            cursor:"pointer"
-          }}
-        >
-          ← Back
-        </button>
-
-        <div
-          style={{
-            background:"rgba(255,59,92,.08)",
-            border:"1px solid rgba(255,59,92,.25)",
-            borderRadius:16,
-            padding:18,
-            marginBottom:18,
-            textAlign:"center"
-          }}
-        >
-
-          <div
-            style={{
-              color:"#ff3b5c",
-              fontWeight:700,
-              marginBottom:8,
-              letterSpacing:1,
-              fontSize:13
-            }}
-          >
-            SAME-DAY DISCOUNT EXPIRES IN
-          </div>
-
-          <div
-            style={{
-              fontSize:42,
-              fontFamily:"'Share Tech Mono',monospace"
-            }}
-          >
-            {String(minutes).padStart(2,"0")}:
-            {String(seconds).padStart(2,"0")}
-          </div>
-
-        </div>
-
-        <div
-          style={{
-            background:"rgba(255,255,255,.03)",
-            border:"1px solid rgba(255,255,255,.08)",
-            borderRadius:16,
-            padding:22,
-            marginBottom:18
-          }}
-        >
-
-          <div
-            style={{
-              color:"#00d4ff",
-              fontSize:11,
-              marginBottom:4,
-              fontFamily:"'Share Tech Mono',monospace"
-            }}
-          >
-            QUOTE FOR
-          </div>
-
-          <div
-            style={{
-              fontFamily:"'Syncopate',sans-serif",
-              fontSize:15,
-              marginBottom:2
-            }}
-          >
-            {customerName.toUpperCase()}
-          </div>
-
-          <div
-            style={{
-              color:"rgba(255,255,255,.4)",
-              fontSize:11,
-              marginBottom:16,
-              fontFamily:"'Share Tech Mono',monospace"
-            }}
-          >
-            {customerAddress.toUpperCase()}
-          </div>
-
-          <div
-            style={{
-              fontSize:46,
-              fontWeight:700,
-              marginBottom:8
-            }}
-          >
-            ${totalMonthly.toFixed(2)}/mo
-          </div>
-
-          <div
-            style={{
-              color:"#10b981",
-              fontWeight:700,
-              marginBottom:12
-            }}
-          >
-            Estimated Savings:
-            ${yearlySavings.toFixed(0)}/year
-          </div>
-
-        </div>
-
-        <form
-          onSubmit={(e)=>{
-
-            e.preventDefault();
-
-            fetch(
-              "https://formsubmit.co/ajax/kenntupe@gmail.com",
-              {
-                method:"POST",
-                headers:{
-                  "Content-Type":"application/json",
-                  "Accept":"application/json"
-                },
-                body:JSON.stringify({
-                  customerName,
-                  address:customerAddress,
-                  phone:e.target.phone.value,
-                  quote:`$${totalMonthly.toFixed(2)}`,
-                  zones:selectedRooms
-                    .map(r=>r.label)
-                    .join(", ")
-                })
-              }
-            );
-
-            setScreen("success");
-
-          }}
-        >
-
-          <div style={{marginBottom:12}}>
-
-            <input
-              required
-              type="text"
-              name="name"
-              defaultValue={customerName}
-              placeholder="Full Name"
-              style={{
-                width:"100%",
-                padding:15,
-                borderRadius:12,
-                border:"1px solid rgba(255,255,255,.1)",
-                background:"rgba(255,255,255,.04)",
-                color:"white"
-              }}
-            />
-
-          </div>
-
-          <div style={{marginBottom:12}}>
-
-            <input
-              required
-              type="tel"
-              name="phone"
-              placeholder="Phone Number"
-              style={{
-                width:"100%",
-                padding:15,
-                borderRadius:12,
-                border:"1px solid rgba(255,255,255,.1)",
-                background:"rgba(255,255,255,.04)",
-                color:"white"
-              }}
-            />
-
-          </div>
-
-          <button
-            type="submit"
-            style={{
-              width:"100%",
-              padding:18,
-              borderRadius:12,
-              border:"none",
-              background:"linear-gradient(135deg,#00d4ff,#0099cc)",
-              color:"#050810",
-              fontWeight:700,
-              fontSize:15,
-              cursor:"pointer",
-              marginBottom:12,
-              boxShadow:"0 0 30px rgba(0,212,255,.25)"
-            }}
-          >
-            RESERVE SAME-DAY INSTALL →
-          </button>
-
-        </form>
-
-      </div>
-
-    );
-
-  }
 
   return(
 
@@ -1111,375 +634,340 @@ function App(){
       style={{
         maxWidth:500,
         margin:"0 auto",
-        padding:20,
-        position:"relative"
+        padding:20
       }}
     >
-
-      <div style={{marginBottom:20}}>
-
-        <div
-          style={{
-            fontFamily:"'Share Tech Mono',monospace",
-            fontSize:11,
-            color:"#00d4ff",
-            marginBottom:10,
-            letterSpacing:1
-          }}
-        >
-          ALDER SECURITY NODE •
-          <span
-            className="pulse"
-            style={{
-              color:"#ff3b5c",
-              marginLeft:6
-            }}
-          >
-            ■ LIVE AUDIT
-          </span>
-        </div>
-
-<div
-  style={{
-    fontFamily:"'Syncopate',sans-serif",
-    fontSize:"clamp(18px,5vw,20px)",
-    lineHeight:1.15,
-    marginBottom:10
-  }}
->
-  HOME SECURITY
-  <br/>
-  VULNERABILITY AUDIT
-</div>
-
-<div
-  className="fade"
-  style={{
-    display:"inline-flex",
-    alignItems:"center",
-    gap:8,
-    background:"rgba(0,212,255,.06)",
-    border:"1px solid rgba(0,212,255,.2)",
-    borderRadius:10,
-    padding:"8px 14px",
-    marginBottom:18,
-    boxShadow:"0 0 20px rgba(0,212,255,.08)"
-  }}
->
-
-  <div
-    className="pulse"
-    style={{
-      width:8,
-      height:8,
-      borderRadius:"50%",
-      background:"#00d4ff",
-      flexShrink:0
-    }}
-  />
-
-  <div
-    style={{
-      fontFamily:"'Share Tech Mono',monospace",
-      fontSize:11,
-      color:"rgba(255,255,255,.75)",
-      letterSpacing:1
-    }}
-  >
-    PROPERTY:
-    <span
-      style={{
-        color:"#00d4ff",
-        marginLeft:8
-      }}
-    >
-      {street.toUpperCase()}
-    </span>
-  </div>
-
-</div>
-
-      </div>
-
-      <div
-        style={{
-          display:"grid",
-          gridTemplateColumns:"1fr 1fr 1fr",
-          gap:10,
-          marginBottom:20
-        }}
-      >
-
-        {
-          [
-            {
-              label:"INTEGRITY",
-              value:`${integrity}%`,
-              color:
-                integrity > 70
-                ? "#10b981"
-                : integrity > 40
-                ? "#f59e0b"
-                : "#ff3b5c"
-            },
-
-            {
-              label:"GAPS FOUND",
-              value:selected.size,
-              color:"#ff3b5c"
-            },
-
-            {
-              label:"THREAT",
-              value:
-                selected.size > 4
-                ? "HIGH"
-                : selected.size > 1
-                ? "MED"
-                : "LOW",
-              color:
-                selected.size > 4
-                ? "#ff3b5c"
-                : selected.size > 1
-                ? "#f59e0b"
-                : "#10b981"
-            }
-          ].map(s=>(
-
-            <div
-              key={s.label}
-              style={{
-                background:"rgba(255,255,255,.03)",
-                border:"1px solid rgba(255,255,255,.08)",
-                borderRadius:12,
-                padding:14
-              }}
-            >
-
-              <div
-                style={{
-                  color:"rgba(255,255,255,.35)",
-                  fontSize:10,
-                  marginBottom:6,
-                  fontFamily:"'Share Tech Mono',monospace"
-                }}
-              >
-                {s.label}
-              </div>
-
-              <div
-                style={{
-                  color:s.color,
-                  fontWeight:700,
-                  fontSize:22
-                }}
-              >
-                {s.value}
-              </div>
-
-            </div>
-
-          ))
-        }
-
-      </div>
-
-      <div
-        style={{
-          background:"rgba(255,255,255,.02)",
-          border:"1px solid rgba(255,255,255,.08)",
-          borderRadius:18,
-          padding:16,
-          position:"relative",
-          overflow:"hidden",
-          marginBottom:20
-        }}
-      >
-
-        <div
-          style={{
-            position:"absolute",
-            left:0,
-            right:0,
-            top:`${scanY}%`,
-            height:2,
-            background:"linear-gradient(90deg,transparent,#00d4ff,transparent)"
-          }}
-        />
-
-        <div
-          style={{
-            marginBottom:14,
-            color:"rgba(255,255,255,.45)",
-            fontSize:12
-          }}
-        >
-          TAP ZONES TO FLAG AS UNPROTECTED
-        </div>
-
-        <div
-          style={{
-            display:"grid",
-            gridTemplateColumns:"1fr 1fr 1fr",
-            gridTemplateRows:"1fr 1fr 1fr",
-            gap:8,
-            height:320
-          }}
-        >
-
-          {
-            ROOMS.map(room=>{
-
-              const active = selected.has(room.id);
-
-              const rc = COLORS[room.risk];
-
-              return(
-
-                <button
-                  key={room.id}
-                  onClick={()=>toggleRoom(room.id)}
-                  onMouseEnter={()=>setHovered(room.id)}
-                  onMouseLeave={()=>setHovered(null)}
-                  style={{
-                    gridColumn:room.col,
-                    gridRow:room.row,
-                    borderRadius:12,
-                    border:
-                      active
-                      ? `1px solid ${rc.border}`
-                      : "1px solid rgba(255,255,255,.08)",
-                    background:
-                      active
-                      ? rc.bg
-                      : "rgba(255,255,255,.03)",
-                    color:"white",
-                    cursor:"pointer",
-                    transition:".2s",
-                    boxShadow:
-                      active
-                      ? `0 0 20px ${rc.glow}`
-                      : "none"
-                  }}
-                >
-
-                  <div
-                    style={{
-                      fontWeight:700,
-                      marginBottom:6,
-                      fontSize:14
-                    }}
-                  >
-                    {room.label}
-                  </div>
-
-                  {
-                    active && (
-
-                      <div
-                        style={{
-                          color:rc.text,
-                          fontSize:11,
-                          fontFamily:
-                            "'Share Tech Mono',monospace"
-                        }}
-                      >
-                        {room.risk} RISK
-                      </div>
-
-                    )
-                  }
-
-                </button>
-
-              );
-
-            })
-          }
-
-        </div>
-
-      </div>
 
       {
-        hovered && !selected.has(hovered) && (
+        screen === "intro"
+        ? (
+          <IntroScreen onSubmit={handleIntroSubmit} />
+        )
+        : (
+          <>
 
-          <div
-            className="fade"
-            style={{
-              marginBottom:18,
-              background:"rgba(0,212,255,.04)",
-              border:"1px solid rgba(0,212,255,.15)",
-              borderRadius:14,
-              padding:14
-            }}
-          >
+            <div style={{marginBottom:20}}>
 
-            <div
-              style={{
-                color:"#00d4ff",
-                marginBottom:8,
-                fontSize:11,
-                fontFamily:"'Share Tech Mono',monospace"
-              }}
-            >
-              RECOMMENDED PROTECTION
+              <div
+                style={{
+                  fontFamily:"'Share Tech Mono',monospace",
+                  fontSize:11,
+                  color:"#00d4ff",
+                  marginBottom:10,
+                  letterSpacing:1
+                }}
+              >
+                ALDER SECURITY NODE •
+                <span
+                  className="pulse"
+                  style={{
+                    color:"#ff3b5c",
+                    marginLeft:6
+                  }}
+                >
+                  ■ LIVE AUDIT
+                </span>
+              </div>
+
+              <div
+                style={{
+                  fontFamily:"'Syncopate',sans-serif",
+                  fontSize:"clamp(18px,5vw,20px)",
+                  lineHeight:1.15,
+                  marginBottom:10
+                }}
+              >
+                HOME SECURITY
+                <br/>
+                VULNERABILITY AUDIT
+              </div>
+
+              <div
+                className="fade"
+                style={{
+                  display:"inline-flex",
+                  alignItems:"center",
+                  gap:8,
+                  background:"rgba(0,212,255,.06)",
+                  border:"1px solid rgba(0,212,255,.2)",
+                  borderRadius:10,
+                  padding:"8px 14px",
+                  marginBottom:18,
+                  boxShadow:"0 0 20px rgba(0,212,255,.08)"
+                }}
+              >
+
+                <div
+                  className="pulse"
+                  style={{
+                    width:8,
+                    height:8,
+                    borderRadius:"50%",
+                    background:"#00d4ff"
+                  }}
+                />
+
+                <div
+                  style={{
+                    fontFamily:"'Share Tech Mono',monospace",
+                    fontSize:11,
+                    color:"rgba(255,255,255,.75)"
+                  }}
+                >
+                  PROPERTY:
+                  <span
+                    style={{
+                      color:"#00d4ff",
+                      marginLeft:8
+                    }}
+                  >
+                    {street.toUpperCase()}
+                  </span>
+                </div>
+
+              </div>
+
             </div>
 
             <div
               style={{
-                color:"rgba(255,255,255,.75)"
+                display:"grid",
+                gridTemplateColumns:"1fr 1fr 1fr",
+                gap:10,
+                marginBottom:20
               }}
             >
-              {
-                ROOMS
-                .find(r=>r.id === hovered)
-                ?.devices.join(" • ")
-              }
+
+              <div
+                style={{
+                  background:"rgba(255,255,255,.03)",
+                  border:"1px solid rgba(255,255,255,.08)",
+                  borderRadius:12,
+                  padding:14
+                }}
+              >
+
+                <div
+                  style={{
+                    color:"rgba(255,255,255,.35)",
+                    fontSize:10,
+                    marginBottom:6
+                  }}
+                >
+                  INTEGRITY
+                </div>
+
+                <div
+                  style={{
+                    color:
+                      integrity > 70
+                      ? "#10b981"
+                      : integrity > 40
+                      ? "#f59e0b"
+                      : "#ff3b5c",
+                    fontWeight:700,
+                    fontSize:22
+                  }}
+                >
+                  {integrity}%
+                </div>
+
+              </div>
+
+              <div
+                style={{
+                  background:"rgba(255,255,255,.03)",
+                  border:"1px solid rgba(255,255,255,.08)",
+                  borderRadius:12,
+                  padding:14
+                }}
+              >
+
+                <div
+                  style={{
+                    color:"rgba(255,255,255,.35)",
+                    fontSize:10,
+                    marginBottom:6
+                  }}
+                >
+                  GAPS FOUND
+                </div>
+
+                <div
+                  style={{
+                    color:"#ff3b5c",
+                    fontWeight:700,
+                    fontSize:22
+                  }}
+                >
+                  {selected.size}
+                </div>
+
+              </div>
+
+              <div
+                style={{
+                  background:"rgba(255,255,255,.03)",
+                  border:"1px solid rgba(255,255,255,.08)",
+                  borderRadius:12,
+                  padding:14
+                }}
+              >
+
+                <div
+                  style={{
+                    color:"rgba(255,255,255,.35)",
+                    fontSize:10,
+                    marginBottom:6
+                  }}
+                >
+                  THREAT
+                </div>
+
+                <div
+                  style={{
+                    color:
+                      selected.size > 4
+                      ? "#ff3b5c"
+                      : selected.size > 1
+                      ? "#f59e0b"
+                      : "#10b981",
+                    fontWeight:700,
+                    fontSize:22
+                  }}
+                >
+                  {
+                    selected.size > 4
+                    ? "HIGH"
+                    : selected.size > 1
+                    ? "MED"
+                    : "LOW"
+                  }
+                </div>
+
+              </div>
+
             </div>
 
-          </div>
+            <div
+              style={{
+                background:"rgba(255,255,255,.02)",
+                border:"1px solid rgba(255,255,255,.08)",
+                borderRadius:18,
+                padding:16,
+                position:"relative",
+                overflow:"hidden",
+                marginBottom:20
+              }}
+            >
 
+              <div
+                style={{
+                  position:"absolute",
+                  left:0,
+                  right:0,
+                  top:`${scanY}%`,
+                  height:2,
+                  background:
+                    "linear-gradient(90deg,transparent,#00d4ff,transparent)"
+                }}
+              />
+
+              <div
+                style={{
+                  marginBottom:14,
+                  color:"rgba(255,255,255,.45)",
+                  fontSize:12
+                }}
+              >
+                TAP ZONES TO FLAG AS UNPROTECTED
+              </div>
+
+              <div
+                style={{
+                  display:"grid",
+                  gridTemplateColumns:"1fr 1fr 1fr",
+                  gridTemplateRows:"1fr 1fr 1fr",
+                  gap:8,
+                  height:320
+                }}
+              >
+
+                {
+                  ROOMS.map(room=>{
+
+                    const active = selected.has(room.id);
+
+                    const rc = COLORS[room.risk];
+
+                    return(
+
+                      <button
+                        key={room.id}
+                        onClick={()=>toggleRoom(room.id)}
+                        onMouseEnter={()=>setHovered(room.id)}
+                        onMouseLeave={()=>setHovered(null)}
+                        style={{
+                          gridColumn:room.col,
+                          gridRow:room.row,
+                          borderRadius:12,
+                          border:
+                            active
+                            ? `1px solid ${rc.border}`
+                            : "1px solid rgba(255,255,255,.08)",
+                          background:
+                            active
+                            ? rc.bg
+                            : "rgba(255,255,255,.03)",
+                          color:"white",
+                          cursor:"pointer",
+                          transition:".2s",
+                          boxShadow:
+                            active
+                            ? `0 0 20px ${rc.glow}`
+                            : "none"
+                        }}
+                      >
+
+                        <div
+                          style={{
+                            fontWeight:700,
+                            marginBottom:6,
+                            fontSize:14
+                          }}
+                        >
+                          {room.label}
+                        </div>
+
+                        {
+                          active && (
+
+                            <div
+                              style={{
+                                color:rc.text,
+                                fontSize:11
+                              }}
+                            >
+                              {room.risk} RISK
+                            </div>
+
+                          )
+                        }
+
+                      </button>
+
+                    );
+
+                  })
+                }
+
+              </div>
+
+            </div>
+
+          </>
         )
       }
-
-      <button
-        onClick={()=>{
-          if(selected.size > 0){
-            setScreen("summary");
-          }
-        }}
-        style={{
-          width:"100%",
-          padding:18,
-          borderRadius:14,
-          border:"none",
-          background:
-            selected.size > 0
-            ? "linear-gradient(135deg,#00d4ff,#0099cc)"
-            : "rgba(255,255,255,.08)",
-          color:
-            selected.size > 0
-            ? "#050810"
-            : "rgba(255,255,255,.35)",
-          fontWeight:700,
-          fontSize:14,
-          cursor:
-            selected.size > 0
-            ? "pointer"
-            : "default",
-          boxShadow:
-            selected.size > 0
-            ? "0 0 30px rgba(0,212,255,.25)"
-            : "none"
-        }}
-      >
-        {
-          selected.size > 0
-          ? `ANALYZE ${selected.size} ZONES →`
-          : "SELECT UNPROTECTED ZONES"
-        }
-      </button>
 
     </div>
 
