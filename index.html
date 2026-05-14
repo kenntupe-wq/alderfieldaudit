@@ -1,199 +1,669 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SHIELD_OS v5.2.1 — Home Vulnerability Audit</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShieldOS Security Audit</title>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;500;700&family=Share+Tech+Mono&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&family=Syncopate:wght@400;700&display=swap');
-    
-    * { box-sizing: border-box; margin:0; padding:0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       background: #050810;
       color: #e2e8f0;
       font-family: 'Rajdhani', sans-serif;
       min-height: 100vh;
       overflow-x: hidden;
-      -webkit-tap-highlight-color: transparent;
     }
 
-    @keyframes flicker { 0%,100%{opacity:1} 50%{opacity:0.85} }
-    @keyframes slide-up { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-
-    .noise {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      opacity: 0.035; pointer-events: none; z-index: 0;
-      background: repeating-linear-gradient(45deg, transparent, transparent 4px, #111 4px, #111 8px);
+    button,
+    input {
+      font-family: inherit;
     }
 
-    .zone {
-      background: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      padding: 10px 6px;
+    @keyframes radar-ping {
+      0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0.6;
+      }
+
+      100% {
+        transform: translate(-50%, -50%) scale(1.5);
+        opacity: 0;
+      }
     }
-    .zone:hover { border-color: #00d4ff; background: rgba(0,212,255,0.05); }
-    .zone.active {
-      background: rgba(255,59,92,0.15);
-      border-color: #ff3b5c;
-      box-shadow: 0 0 15px rgba(255,59,92,0.4);
+
+    @keyframes flicker {
+      0%,100% { opacity:1 }
+      50% { opacity:0.85 }
+    }
+
+    @keyframes blink {
+      0%,100% { opacity:1 }
+      50% { opacity:0 }
+    }
+
+    @keyframes slide-up {
+      from {
+        transform: translateY(30px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    #root {
+      min-height: 100vh;
     }
   </style>
 </head>
 <body>
-  <div class="noise"></div>
-  <div id="root"></div>
 
-  <script>
-    const ROOMS = [
-      { id: "front_door", label: "Front Door", risk: "HIGH", devices: ["Smart Lock", "Video Doorbell", "Motion Sensor"], price: 24.99, col: 2, row: 1 },
-      { id: "garage", label: "Garage", risk: "HIGH", devices: ["Garage Sensor", "Camera"], price: 18.99, col: 1, row: 1 },
-      { id: "living", label: "Living Room", risk: "MED", devices: ["Motion Sensor", "Glass Break"], price: 14.99, col: 1, row: 2 },
-      { id: "kitchen", label: "Kitchen", risk: "LOW", devices: ["Smoke + CO Sensor"], price: 9.99, col: 2, row: 2 },
-      { id: "master", label: "Master Bed", risk: "MED", devices: ["Motion Sensor", "Window Sensor"], price: 12.99, col: 3, row: 1 },
-      { id: "bedroom2", label: "Bedroom 2", risk: "LOW", devices: ["Window Sensor"], price: 7.99, col: 3, row: 2 },
-      { id: "backyard", label: "Back Yard", risk: "HIGH", devices: ["Outdoor Camera", "Floodlight"], price: 19.99, col: 2, row: 3 },
-      { id: "basement", label: "Basement", risk: "HIGH", devices: ["Flood Sensor", "Camera"], price: 16.99, col: 1, row: 3 },
-      { id: "driveway", label: "Driveway", risk: "MED", devices: ["Outdoor Camera"], price: 14.99, col: 3, row: 3 }
-    ];
+<div id="root"></div>
 
-    const RISK_COLORS = {
-      HIGH: { border: "#ff3b5c", bg: "rgba(255,59,92,0.12)", glow: "rgba(255,59,92,0.3)", label: "#ff3b5c" },
-      MED:  { border: "#f59e0b", bg: "rgba(245,158,11,0.1)", glow: "rgba(245,158,11,0.2)", label: "#f59e0b" },
-      LOW:  { border: "#10b981", bg: "rgba(16,185,129,0.08)", glow: "rgba(16,185,129,0.15)", label: "#10b981" }
-    };
+<script type="text/babel">
 
-    const BASE_PRICE = 29.99;
+const { useState, useEffect } = React;
 
-    let selected = new Set();
-    let screen = "audit";
-    let scanY = 0;
-    let form = { name: "", address: "", email: "", phone: "" };
+const ROOMS = [
+  {
+    id: "front_door",
+    label: "Front Door",
+    risk: "HIGH",
+    devices: ["Smart Lock", "Video Doorbell", "Motion Sensor"],
+    price: 24.99,
+    col: 2,
+    row: 1
+  },
+  {
+    id: "garage",
+    label: "Garage",
+    risk: "HIGH",
+    devices: ["Garage Sensor", "Camera"],
+    price: 18.99,
+    col: 1,
+    row: 1
+  },
+  {
+    id: "living",
+    label: "Living Room",
+    risk: "MED",
+    devices: ["Motion Sensor", "Glass Break"],
+    price: 14.99,
+    col: 1,
+    row: 2
+  },
+  {
+    id: "kitchen",
+    label: "Kitchen",
+    risk: "LOW",
+    devices: ["Smoke + CO Sensor"],
+    price: 9.99,
+    col: 2,
+    row: 2
+  },
+  {
+    id: "master",
+    label: "Master Bed",
+    risk: "MED",
+    devices: ["Motion Sensor", "Window Sensor"],
+    price: 12.99,
+    col: 3,
+    row: 1
+  },
+  {
+    id: "bedroom2",
+    label: "Bedroom 2",
+    risk: "LOW",
+    devices: ["Window Sensor"],
+    price: 7.99,
+    col: 3,
+    row: 2
+  },
+  {
+    id: "backyard",
+    label: "Back Yard",
+    risk: "HIGH",
+    devices: ["Outdoor Camera", "Floodlight"],
+    price: 19.99,
+    col: 2,
+    row: 3
+  },
+  {
+    id: "basement",
+    label: "Basement",
+    risk: "HIGH",
+    devices: ["Flood Sensor", "Camera"],
+    price: 16.99,
+    col: 1,
+    row: 3
+  },
+  {
+    id: "driveway",
+    label: "Driveway",
+    risk: "MED",
+    devices: ["Outdoor Camera"],
+    price: 14.99,
+    col: 3,
+    row: 3
+  }
+];
 
-    function toggleRoom(id) {
-      if (selected.has(id)) selected.delete(id);
-      else selected.add(id);
-      render();
-    }
+const RISK_COLORS = {
+  HIGH: {
+    border: "#ff3b5c",
+    bg: "rgba(255,59,92,0.12)",
+    glow: "rgba(255,59,92,0.3)",
+    label: "#ff3b5c"
+  },
+  MED: {
+    border: "#f59e0b",
+    bg: "rgba(245,158,11,0.1)",
+    glow: "rgba(245,158,11,0.2)",
+    label: "#f59e0b"
+  },
+  LOW: {
+    border: "#10b981",
+    bg: "rgba(16,185,129,0.08)",
+    glow: "rgba(16,185,129,0.15)",
+    label: "#10b981"
+  }
+};
 
-    function getMonthly() {
-      return BASE_PRICE + Array.from(selected).reduce((sum, id) => {
-        const r = ROOMS.find(room => room.id === id);
-        return sum + (r ? r.price : 0);
-      }, 0);
-    }
+const BASE_PRICE = 29.99;
 
-    setInterval(() => {
-      scanY = (scanY + 0.65) % 100;
-      if (screen === "audit") render();
-    }, 35);
+function App() {
 
-    function render() {
-      const root = document.getElementById("root");
-      const totalMonthly = getMonthly();
-      const integrityScore = Math.max(0, 100 - selected.size * 10);
-      const selectedRooms = ROOMS.filter(r => selected.has(r.id));
+  const [flaggedZones, setFlaggedZones] = useState(new Set());
+  const [screen, setScreen] = useState("audit");
+  const [scanY, setScanY] = useState(0);
+  const [hoveredRoom, setHoveredRoom] = useState(null);
 
-      if (screen === "audit") {
-        let zones = '';
-        ROOMS.forEach(room => {
-          const isSel = selected.has(room.id);
-          const rc = RISK_COLORS[room.risk];
-          zones += `
-            <div class="zone ${isSel ? 'active' : ''}" data-id="${room.id}" style="color:${isSel?rc.label:'#aaa'}">
-              <div style="font-size:11.5px;font-weight:700;text-align:center">${room.label}</div>
-              ${isSel ? `<div style="font-size:9px;margin-top:4px">${room.risk}</div>` : ''}
-            </div>`;
-        });
+  useEffect(() => {
+    let y = 0;
 
-        root.innerHTML = `
-          <div style="max-width:480px;margin:0 auto;padding:24px 20px;position:relative;z-index:1">
-            <div style="margin-bottom:28px">
-              <div style="font-family:'Share Tech Mono',monospace;font-size:10;color:#00d4ff;letter-spacing:2">SHIELD_OS v5.2.1 // SCANNING <span style="animation:blink 1s infinite">■</span></div>
-              <div style="font-family:'Syncopate',sans-serif;font-size:21;font-weight:700;letter-spacing:2">HOME SECURITY<br>VULNERABILITY AUDIT</div>
-            </div>
+    const interval = setInterval(() => {
+      y = (y + 0.4) % 100;
+      setScanY(y);
+    }, 30);
 
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
-              <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(0,212,255,0.3);border-radius:10;padding:12px;text-align:center">
-                <div style="font-size:9;color:#888">INTEGRITY</div>
-                <div style="font-size:26;color:#00d4ff">${integrityScore}%</div>
-              </div>
-              <div style="background:rgba(255,255,255,0.02);border:1px solid #ff3b5c;border-radius:10;padding:12px;text-align:center">
-                <div style="font-size:9;color:#888">GAPS</div>
-                <div style="font-size:26;color:#ff3b5c">${selected.size}</div>
-              </div>
-              <div style="background:rgba(255,255,255,0.02);border:1px solid #f59e0b;border-radius:10;padding:12px;text-align:center">
-                <div style="font-size:9;color:#888">THREAT</div>
-                <div style="font-size:22;color:#f59e0b">${selected.size>=4?'HIGH':selected.size>0?'MED':'LOW'}</div>
-              </div>
-            </div>
+    return () => clearInterval(interval);
 
-            <div style="background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.1);border-radius:16;padding:16px;position:relative;overflow:hidden">
-              <div style="position:absolute;left:0;right:0;height:3px;top:${scanY}%;background:linear-gradient(90deg,transparent,#00d4ff,transparent);z-index:5"></div>
-              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;height:310px">
-                ${zones}
-              </div>
-            </div>
+  }, []);
 
-            <button onclick="if(selected.size>0){screen='summary';render()}" style="width:100%;margin-top:25px;padding:18px;background:${selected.size>0?'linear-gradient(135deg,#00d4ff,#0099cc)':'rgba(255,255,255,0.05)'};color:${selected.size>0?'#050810':'#666'};border:none;border-radius:10;font-weight:700">
-              ${selected.size > 0 ? `ANALYZE ${selected.size} ZONE${selected.size>1?'S':''} →` : 'SELECT ZONES TO BEGIN'}
-            </button>
-          </div>
-        `;
+  const toggleRoom = (id) => {
+    setFlaggedZones(prev => {
+      const next = new Set(prev);
 
-        setTimeout(() => {
-          document.querySelectorAll('.zone').forEach(el => {
-            el.addEventListener('click', () => toggleRoom(el.dataset.id));
-          });
-        }, 50);
-      } 
-      else if (screen === "summary") {
-        root.innerHTML = `
-          <div style="max-width:480px;margin:0 auto;padding:24px 20px">
-            <button onclick="screen='audit';render()" style="background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);padding:8px 16px;border-radius:6">← BACK</button>
-            <div style="color:#00d4ff;font-size:22;margin:25px 0">THREAT ANALYSIS</div>
-            <div style="text-align:center;padding:40px;background:rgba(255,255,255,0.02);border-radius:16">
-              <div style="font-size:52px;color:#00d4ff">${integrityScore}%</div>
-              <div style="color:#10b981">INTEGRITY SCORE</div>
-            </div>
-            <button onclick="screen='quote';render()" style="width:100%;margin-top:30px;padding:18px;background:linear-gradient(135deg,#00d4ff,#0099cc);border:none;border-radius:10;color:#050810;font-weight:700">SECURE MY HOME →</button>
-          </div>
-        `;
-      } 
-      else if (screen === "quote") {
-        root.innerHTML = `
-          <div style="max-width:480px;margin:0 auto;padding:24px 20px">
-            <button onclick="screen='summary';render()" style="background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);padding:8px 16px;border-radius:6">← BACK</button>
-            <div style="color:#00d4ff;font-size:22;margin:25px 0">LOCK CONFIGURATION</div>
-            <input type="text" placeholder="Full Name" style="width:100%;padding:15px;margin:10px 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.15);border-radius:10;color:white" onchange="form.name=this.value">
-            <input type="text" placeholder="Address" style="width:100%;padding:15px;margin:10px 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.15);border-radius:10;color:white" onchange="form.address=this.value">
-            <input type="email" placeholder="Email" style="width:100%;padding:15px;margin:10px 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.15);border-radius:10;color:white" onchange="form.email=this.value">
-            <button onclick="if(form.email){screen='submitted';render()}" style="width:100%;padding:18px;margin-top:20px;background:linear-gradient(135deg,#00d4ff,#0099cc);border:none;border-radius:10;color:#050810;font-weight:700">LOCK IN MY RATE →</button>
-          </div>
-        `;
-      } 
-      else if (screen === "submitted") {
-        root.innerHTML = `
-          <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px;text-align:center">
-            <div>
-              <div style="font-size:60px;margin-bottom:20px">✅</div>
-              <div style="font-size:24px;color:#00d4ff">HOME SECURED</div>
-              <div style="font-size:42px;color:#00d4ff;margin:20px 0">$${totalMonthly.toFixed(2)}</div>
-              <p style="color:rgba(255,255,255,0.7)">A specialist will contact you shortly.</p>
-            </div>
-          </div>
-        `;
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
       }
-    }
 
-    window.onload = render;
-  </script>
+      return next;
+    });
+  };
+
+  const selectedRooms = ROOMS.filter(r => flaggedZones.has(r.id));
+
+  const monthlyAdd = selectedRooms.reduce((acc, r) => acc + r.price, 0);
+
+  const totalMonthly = BASE_PRICE + monthlyAdd;
+
+  const integrityScore = Math.max(
+    0,
+    100 - flaggedZones.size * 10
+  );
+
+  if (screen === "summary") {
+
+    return (
+      <div
+        style={{
+          maxWidth: 480,
+          margin: "0 auto",
+          padding: 20
+        }}
+      >
+
+        <button
+          onClick={() => setScreen("audit")}
+          style={{
+            marginBottom: 20,
+            padding: "8px 14px",
+            borderRadius: 8,
+            border: "1px solid rgba(255,255,255,0.2)",
+            background: "transparent",
+            color: "white",
+            cursor: "pointer"
+          }}
+        >
+          ← Back
+        </button>
+
+        <div
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 16,
+            padding: 24,
+            marginBottom: 20
+          }}
+        >
+
+          <div
+            style={{
+              fontSize: 14,
+              color: "#00d4ff",
+              marginBottom: 8,
+              fontFamily: "'Share Tech Mono', monospace"
+            }}
+          >
+            HOME INTEGRITY SCORE
+          </div>
+
+          <div
+            style={{
+              fontSize: 52,
+              fontWeight: 700,
+              color:
+                integrityScore > 70
+                  ? "#10b981"
+                  : integrityScore > 40
+                  ? "#f59e0b"
+                  : "#ff3b5c"
+            }}
+          >
+            {integrityScore}%
+          </div>
+
+          <div
+            style={{
+              marginTop: 10,
+              color: "rgba(255,255,255,0.6)"
+            }}
+          >
+            {
+              integrityScore > 70
+                ? "LOW RISK"
+                : integrityScore > 40
+                ? "MODERATE RISK"
+                : "CRITICAL RISK"
+            }
+          </div>
+
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            marginBottom: 20
+          }}
+        >
+          {
+            selectedRooms.map(room => {
+
+              const rc = RISK_COLORS[room.risk];
+
+              return (
+                <div
+                  key={room.id}
+                  style={{
+                    border: `1px solid ${rc.border}`,
+                    background: rc.bg,
+                    borderRadius: 12,
+                    padding: 16
+                  }}
+                >
+                  <div
+                    style={{
+                      color: rc.label,
+                      fontSize: 12,
+                      marginBottom: 6,
+                      fontFamily: "'Share Tech Mono', monospace"
+                    }}
+                  >
+                    {room.risk} RISK
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 20,
+                      fontWeight: 700,
+                      marginBottom: 6
+                    }}
+                  >
+                    {room.label}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "rgba(255,255,255,0.6)",
+                      marginBottom: 10
+                    }}
+                  >
+                    {room.devices.join(" • ")}
+                  </div>
+
+                  <div
+                    style={{
+                      color: "#00d4ff",
+                      fontWeight: 700
+                    }}
+                  >
+                    +${room.price.toFixed(2)}/mo
+                  </div>
+
+                </div>
+              );
+
+            })
+          }
+        </div>
+
+        <div
+          style={{
+            background: "rgba(0,212,255,0.05)",
+            border: "1px solid rgba(0,212,255,0.2)",
+            borderRadius: 16,
+            padding: 20
+          }}
+        >
+
+          <div
+            style={{
+              color: "rgba(255,255,255,0.5)",
+              marginBottom: 8
+            }}
+          >
+            TOTAL MONTHLY
+          </div>
+
+          <div
+            style={{
+              fontSize: 42,
+              color: "#00d4ff",
+              fontWeight: 700,
+              marginBottom: 20
+            }}
+          >
+            ${totalMonthly.toFixed(2)}
+          </div>
+
+          <button
+            onClick={() => alert("Lead Captured")}
+            style={{
+              width: "100%",
+              padding: 18,
+              borderRadius: 10,
+              border: "none",
+              background: "linear-gradient(135deg,#00d4ff,#0099cc)",
+              color: "#050810",
+              fontWeight: 700,
+              cursor: "pointer"
+            }}
+          >
+            SECURE MY HOME →
+          </button>
+
+        </div>
+
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        maxWidth: 480,
+        margin: "0 auto",
+        padding: 20,
+        position: "relative"
+      }}
+    >
+
+      <div
+        style={{
+          marginBottom: 24
+        }}
+      >
+        <div
+          style={{
+            fontSize: 11,
+            color: "#00d4ff",
+            marginBottom: 8,
+            fontFamily: "'Share Tech Mono', monospace"
+          }}
+        >
+          SHIELD_OS v5.2.1 ■ SCANNING
+        </div>
+
+        <div
+          style={{
+            fontSize: 28,
+            fontWeight: 700,
+            lineHeight: 1.1,
+            fontFamily: "'Syncopate', sans-serif"
+          }}
+        >
+          HOME SECURITY
+          <br />
+          VULNERABILITY AUDIT
+        </div>
+      </div>
+
+      <div
+        style={{
+          background: "rgba(255,255,255,0.02)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 16,
+          padding: 16,
+          marginBottom: 20,
+          position: "relative",
+          overflow: "hidden"
+        }}
+      >
+
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            height: 2,
+            top: `${scanY}%`,
+            background:
+              "linear-gradient(90deg,transparent,rgba(0,212,255,0.6),transparent)"
+          }}
+        />
+
+        <div
+          style={{
+            marginBottom: 14,
+            color: "rgba(255,255,255,0.4)",
+            fontSize: 12
+          }}
+        >
+          TAP ZONES TO FLAG AS UNPROTECTED
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gap: 8,
+            height: 300
+          }}
+        >
+
+          {
+            ROOMS.map(room => {
+
+              const isSelected = flaggedZones.has(room.id);
+
+              const rc = RISK_COLORS[room.risk];
+
+              return (
+                <button
+                  key={room.id}
+                  onClick={() => toggleRoom(room.id)}
+                  onMouseEnter={() => setHoveredRoom(room.id)}
+                  onMouseLeave={() => setHoveredRoom(null)}
+                  style={{
+                    gridColumn: room.col,
+                    gridRow: room.row,
+                    borderRadius: 10,
+                    border: `1px solid ${
+                      isSelected
+                        ? rc.border
+                        : "rgba(255,255,255,0.08)"
+                    }`,
+                    background:
+                      isSelected
+                        ? rc.bg
+                        : "rgba(255,255,255,0.03)",
+                    color: "white",
+                    cursor: "pointer",
+                    transition: "0.2s",
+                    boxShadow:
+                      isSelected
+                        ? `0 0 18px ${rc.glow}`
+                        : "none"
+                  }}
+                >
+
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      marginBottom: 6
+                    }}
+                  >
+                    {room.label}
+                  </div>
+
+                  {
+                    isSelected && (
+                      <div
+                        style={{
+                          color: rc.label,
+                          fontSize: 11,
+                          fontFamily: "'Share Tech Mono', monospace"
+                        }}
+                      >
+                        {room.risk} RISK
+                      </div>
+                    )
+                  }
+
+                </button>
+              );
+
+            })
+          }
+
+        </div>
+
+      </div>
+
+      {
+        hoveredRoom && !flaggedZones.has(hoveredRoom) && (
+          <div
+            style={{
+              marginBottom: 18,
+              padding: 14,
+              borderRadius: 12,
+              background: "rgba(0,212,255,0.04)",
+              border: "1px solid rgba(0,212,255,0.15)"
+            }}
+          >
+
+            <div
+              style={{
+                color: "#00d4ff",
+                marginBottom: 8,
+                fontSize: 11,
+                fontFamily: "'Share Tech Mono', monospace"
+              }}
+            >
+              RECOMMENDED DEVICES
+            </div>
+
+            <div
+              style={{
+                color: "rgba(255,255,255,0.7)"
+              }}
+            >
+              {
+                ROOMS.find(r => r.id === hoveredRoom)
+                  ?.devices.join(" • ")
+              }
+            </div>
+
+          </div>
+        )
+      }
+
+      <button
+        onClick={() => {
+          if (flaggedZones.size > 0) {
+            setScreen("summary");
+          }
+        }}
+        style={{
+          width: "100%",
+          padding: 18,
+          borderRadius: 10,
+          border: "none",
+          background:
+            flaggedZones.size > 0
+              ? "linear-gradient(135deg,#00d4ff,#0099cc)"
+              : "rgba(255,255,255,0.08)",
+          color:
+            flaggedZones.size > 0
+              ? "#050810"
+              : "rgba(255,255,255,0.4)",
+          fontWeight: 700,
+          cursor:
+            flaggedZones.size > 0
+              ? "pointer"
+              : "default"
+        }}
+      >
+        {
+          flaggedZones.size > 0
+            ? `ANALYZE ${flaggedZones.size} ZONES →`
+            : "SELECT UNPROTECTED ZONES"
+        }
+      </button>
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(
+  document.getElementById("root")
+).render(<App />);
+
+</script>
+
 </body>
 </html>
