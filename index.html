@@ -1,436 +1,199 @@
-import { useState, useEffect, useRef } from “react”;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SHIELD_OS v5.2.1 — Home Vulnerability Audit</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&family=Syncopate:wght@400;700&display=swap');
+    
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body {
+      background: #050810;
+      color: #e2e8f0;
+      font-family: 'Rajdhani', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-const ROOMS = [
-{ id: “front_door”, label: “Front Door”, icon: “⬛”, risk: “HIGH”, devices: [“Smart Lock”, “Video Doorbell”, “Motion Sensor”], price: 24.99, col: 2, row: 1 },
-{ id: “garage”, label: “Garage”, icon: “⬛”, risk: “HIGH”, devices: [“Garage Sensor”, “Camera”], price: 18.99, col: 1, row: 1 },
-{ id: “living”, label: “Living Room”, icon: “⬛”, risk: “MED”, devices: [“Motion Sensor”, “Glass Break”], price: 14.99, col: 1, row: 2 },
-{ id: “kitchen”, label: “Kitchen”, icon: “⬛”, risk: “LOW”, devices: [“Smoke + CO Sensor”], price: 9.99, col: 2, row: 2 },
-{ id: “master”, label: “Master Bed”, icon: “⬛”, risk: “MED”, devices: [“Motion Sensor”, “Window Sensor”], price: 12.99, col: 3, row: 1 },
-{ id: “bedroom2”, label: “Bedroom 2”, icon: “⬛”, risk: “LOW”, devices: [“Window Sensor”], price: 7.99, col: 3, row: 2 },
-{ id: “backyard”, label: “Back Yard”, icon: “⬛”, risk: “HIGH”, devices: [“Outdoor Camera”, “Floodlight”], price: 19.99, col: 2, row: 3 },
-{ id: “basement”, label: “Basement”, icon: “⬛”, risk: “HIGH”, devices: [“Flood Sensor”, “Camera”], price: 16.99, col: 1, row: 3 },
-{ id: “driveway”, label: “Driveway”, icon: “⬛”, risk: “MED”, devices: [“Outdoor Camera”], price: 14.99, col: 3, row: 3 },
-];
+    @keyframes flicker { 0%,100%{opacity:1} 50%{opacity:0.85} }
+    @keyframes slide-up { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-const RISK_COLORS = {
-HIGH: { border: “#ff3b5c”, bg: “rgba(255,59,92,0.12)”, glow: “rgba(255,59,92,0.3)”, label: “#ff3b5c” },
-MED:  { border: “#f59e0b”, bg: “rgba(245,158,11,0.1)”, glow: “rgba(245,158,11,0.2)”, label: “#f59e0b” },
-LOW:  { border: “#10b981”, bg: “rgba(16,185,129,0.08)”, glow: “rgba(16,185,129,0.15)”, label: “#10b981” },
-};
+    .noise {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0.035; pointer-events: none; z-index: 0;
+      background: repeating-linear-gradient(45deg, transparent, transparent 4px, #111 4px, #111 8px);
+    }
 
-const BASE_PRICE = 29.99;
+    .zone {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      padding: 10px 6px;
+    }
+    .zone:hover { border-color: #00d4ff; background: rgba(0,212,255,0.05); }
+    .zone.active {
+      background: rgba(255,59,92,0.15);
+      border-color: #ff3b5c;
+      box-shadow: 0 0 15px rgba(255,59,92,0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="noise"></div>
+  <div id="root"></div>
 
-function Noise() {
-return (
-<svg style={{ position: “fixed”, top: 0, left: 0, width: “100%”, height: “100%”, opacity: 0.03, pointerEvents: “none”, zIndex: 0 }}>
-<filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter>
-<rect width="100%" height="100%" filter="url(#noise)" />
-</svg>
-);
-}
+  <script>
+    const ROOMS = [
+      { id: "front_door", label: "Front Door", risk: "HIGH", devices: ["Smart Lock", "Video Doorbell", "Motion Sensor"], price: 24.99, col: 2, row: 1 },
+      { id: "garage", label: "Garage", risk: "HIGH", devices: ["Garage Sensor", "Camera"], price: 18.99, col: 1, row: 1 },
+      { id: "living", label: "Living Room", risk: "MED", devices: ["Motion Sensor", "Glass Break"], price: 14.99, col: 1, row: 2 },
+      { id: "kitchen", label: "Kitchen", risk: "LOW", devices: ["Smoke + CO Sensor"], price: 9.99, col: 2, row: 2 },
+      { id: "master", label: "Master Bed", risk: "MED", devices: ["Motion Sensor", "Window Sensor"], price: 12.99, col: 3, row: 1 },
+      { id: "bedroom2", label: "Bedroom 2", risk: "LOW", devices: ["Window Sensor"], price: 7.99, col: 3, row: 2 },
+      { id: "backyard", label: "Back Yard", risk: "HIGH", devices: ["Outdoor Camera", "Floodlight"], price: 19.99, col: 2, row: 3 },
+      { id: "basement", label: "Basement", risk: "HIGH", devices: ["Flood Sensor", "Camera"], price: 16.99, col: 1, row: 3 },
+      { id: "driveway", label: "Driveway", risk: "MED", devices: ["Outdoor Camera"], price: 14.99, col: 3, row: 3 }
+    ];
 
-function RadarPing({ active }) {
-return active ? (
-<div style={{ position: “absolute”, top: “50%”, left: “50%”, transform: “translate(-50%,-50%)”, pointerEvents: “none”, zIndex: 10 }}>
-{[0, 1, 2].map(i => (
-<div key={i} style={{
-position: “absolute”,
-width: 60 + i * 40,
-height: 60 + i * 40,
-borderRadius: “50%”,
-border: “1px solid #00d4ff”,
-top: “50%”, left: “50%”,
-transform: “translate(-50%,-50%)”,
-animation: `radar-ping 2s ease-out ${i * 0.5}s infinite`,
-opacity: 0,
-}} />
-))}
-</div>
-) : null;
-}
+    const RISK_COLORS = {
+      HIGH: { border: "#ff3b5c", bg: "rgba(255,59,92,0.12)", glow: "rgba(255,59,92,0.3)", label: "#ff3b5c" },
+      MED:  { border: "#f59e0b", bg: "rgba(245,158,11,0.1)", glow: "rgba(245,158,11,0.2)", label: "#f59e0b" },
+      LOW:  { border: "#10b981", bg: "rgba(16,185,129,0.08)", glow: "rgba(16,185,129,0.15)", label: "#10b981" }
+    };
 
-export default function App() {
-const [selected, setSelected] = useState(new Set());
-const [screen, setScreen] = useState(“audit”); // audit | summary | quote
-const [scanY, setScanY] = useState(0);
-const [form, setForm] = useState({ name: “”, address: “”, email: “”, phone: “” });
-const [submitted, setSubmitted] = useState(false);
-const [hoveredRoom, setHoveredRoom] = useState(null);
-const scanRef = useRef(null);
+    const BASE_PRICE = 29.99;
 
-useEffect(() => {
-let y = 0;
-const interval = setInterval(() => {
-y = (y + 0.4) % 100;
-setScanY(y);
-}, 30);
-return () => clearInterval(interval);
-}, []);
+    let selected = new Set();
+    let screen = "audit";
+    let scanY = 0;
+    let form = { name: "", address: "", email: "", phone: "" };
 
-const toggleRoom = (id) => {
-setSelected(prev => {
-const next = new Set(prev);
-next.has(id) ? next.delete(id) : next.add(id);
-return next;
-});
-};
+    function toggleRoom(id) {
+      if (selected.has(id)) selected.delete(id);
+      else selected.add(id);
+      render();
+    }
 
-const selectedRooms = ROOMS.filter(r => selected.has(r.id));
-const monthlyAdd = selectedRooms.reduce((acc, r) => acc + r.price, 0);
-const totalMonthly = BASE_PRICE + monthlyAdd;
-const integrityScore = Math.max(0, 100 - selected.size * 10);
-const highRiskSelected = selectedRooms.filter(r => r.risk === “HIGH”).length;
+    function getMonthly() {
+      return BASE_PRICE + Array.from(selected).reduce((sum, id) => {
+        const r = ROOMS.find(room => room.id === id);
+        return sum + (r ? r.price : 0);
+      }, 0);
+    }
 
-const css = `
-@import url(‘https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&family=Syncopate:wght@400;700&display=swap’);
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #050810; color: #e2e8f0; font-family: ‘Rajdhani’, sans-serif; min-height: 100vh; overflow-x: hidden; }
+    setInterval(() => {
+      scanY = (scanY + 0.65) % 100;
+      if (screen === "audit") render();
+    }, 35);
 
-```
-@keyframes radar-ping {
-  0% { transform: translate(-50%,-50%) scale(0.5); opacity: 0.6; }
-  100% { transform: translate(-50%,-50%) scale(1.5); opacity: 0; }
-}
-@keyframes flicker {
-  0%,100%{opacity:1}50%{opacity:0.85}
-}
-@keyframes pulse-glow {
-  0%,100%{box-shadow:0 0 8px rgba(0,212,255,0.3)}
-  50%{box-shadow:0 0 20px rgba(0,212,255,0.6)}
-}
-@keyframes slide-up {
-  from{transform:translateY(30px);opacity:0}
-  to{transform:translateY(0);opacity:1}
-}
-@keyframes blink {
-  0%,100%{opacity:1}49%{opacity:1}50%{opacity:0}
-}
-@keyframes sweep {
-  from{transform:rotate(0deg)}
-  to{transform:rotate(360deg)}
-}
-@keyframes count-up {
-  from{opacity:0;transform:scale(0.8)}
-  to{opacity:1;transform:scale(1)}
-}
-```
+    function render() {
+      const root = document.getElementById("root");
+      const totalMonthly = getMonthly();
+      const integrityScore = Math.max(0, 100 - selected.size * 10);
+      const selectedRooms = ROOMS.filter(r => selected.has(r.id));
 
-`;
-
-const IntegrityArc = ({ score }) => {
-const r = 38; const circ = 2 * Math.PI * r;
-const dash = (score / 100) * circ;
-const color = score > 60 ? “#00d4ff” : score > 30 ? “#f59e0b” : “#ff3b5c”;
-return (
-<svg width=“100” height=“100” style={{ transform: “rotate(-90deg)” }}>
-<circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-<circle cx=“50” cy=“50” r={r} fill=“none” stroke={color} strokeWidth=“6”
-strokeDasharray={`${dash} ${circ}`} strokeLinecap=“round”
-style={{ transition: “stroke-dasharray 0.5s ease, stroke 0.5s ease”, filter: `drop-shadow(0 0 6px ${color})` }}
-/>
-<text x=“50” y=“50” textAnchor=“middle” dominantBaseline=“middle”
-style={{ fill: color, fontFamily: “‘Share Tech Mono’, monospace”, fontSize: “13px”, transform: “rotate(90deg) translate(0, -100px)”, transformOrigin: “50px 50px” }}>
-{score}%
-</text>
-</svg>
-);
-};
-
-if (screen === “submitted”) {
-return (
-<>
-<style>{css}</style>
-<Noise />
-<div style={{ minHeight: “100vh”, display: “flex”, flexDirection: “column”, alignItems: “center”, justifyContent: “center”, padding: 24, position: “relative”, zIndex: 1 }}>
-<div style={{ textAlign: “center”, animation: “slide-up 0.6s ease” }}>
-<div style={{ width: 80, height: 80, borderRadius: “50%”, border: “2px solid #00d4ff”, display: “flex”, alignItems: “center”, justifyContent: “center”, margin: “0 auto 24px”, boxShadow: “0 0 30px rgba(0,212,255,0.4)”, fontSize: 32 }}>✓</div>
-<div style={{ fontFamily: “‘Syncopate’, sans-serif”, fontSize: 18, color: “#00d4ff”, letterSpacing: 4, marginBottom: 12 }}>SECURED</div>
-<div style={{ fontFamily: “‘Share Tech Mono’, monospace”, fontSize: 13, color: “rgba(255,255,255,0.5)”, marginBottom: 32 }}>Configuration locked to your address</div>
-<div style={{ background: “rgba(0,212,255,0.05)”, border: “1px solid rgba(0,212,255,0.2)”, borderRadius: 12, padding: 24 }}>
-<div style={{ fontFamily: “‘Share Tech Mono’, monospace”, fontSize: 11, color: “#00d4ff”, marginBottom: 8 }}>YOUR RATE</div>
-<div style={{ fontFamily: “‘Syncopate’, sans-serif”, fontSize: 42, color: “#00d4ff” }}>${totalMonthly.toFixed(2)}</div>
-<div style={{ fontSize: 13, color: “rgba(255,255,255,0.4)” }}>/ MONTH — LOCKED FOR 24 MONTHS</div>
-</div>
-<div style={{ marginTop: 24, fontSize: 14, color: “rgba(255,255,255,0.4)” }}>A security specialist will contact you within 2 hours.</div>
-</div>
-</div>
-</>
-);
-}
-
-if (screen === “quote”) {
-return (
-<>
-<style>{css}</style>
-<Noise />
-<div style={{ maxWidth: 480, margin: “0 auto”, padding: “24px 20px”, position: “relative”, zIndex: 1 }}>
-{/* Header */}
-<div style={{ display: “flex”, alignItems: “center”, gap: 12, marginBottom: 32 }}>
-<button onClick={() => setScreen(“summary”)} style={{ background: “none”, border: “1px solid rgba(255,255,255,0.15)”, borderRadius: 6, color: “rgba(255,255,255,0.5)”, padding: “6px 12px”, cursor: “pointer”, fontFamily: “‘Share Tech Mono’, monospace”, fontSize: 11 }}>← BACK</button>
-<div style={{ fontFamily: “‘Syncopate’, sans-serif”, fontSize: 12, color: “#00d4ff”, letterSpacing: 3 }}>LOCK CONFIGURATION</div>
-</div>
-
-```
-      {/* Price Summary */}
-      <div style={{ background: "rgba(0,212,255,0.03)", border: "1px solid rgba(0,212,255,0.15)", borderRadius: 16, padding: 24, marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-          <div>
-            <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#00d4ff", marginBottom: 6 }}>SECURED MONTHLY RATE</div>
-            <div style={{ fontFamily: "'Syncopate', sans-serif", fontSize: 40, color: "#00d4ff", lineHeight: 1 }}>${totalMonthly.toFixed(2)}</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>vs. standard ${(totalMonthly * 1.4).toFixed(2)}/mo</div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{selectedRooms.length} ZONES</div>
-            <div style={{ fontSize: 12, color: "#10b981" }}>SAVE {Math.round(28)}%</div>
-          </div>
-        </div>
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.07)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Base monitoring</div>
-          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.6)", textAlign: "right" }}>${BASE_PRICE.toFixed(2)}</div>
-          {selectedRooms.map(r => <>
-            <div key={r.id + "l"} style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{r.label}</div>
-            <div key={r.id + "p"} style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.6)", textAlign: "right" }}>+${r.price.toFixed(2)}</div>
-          </>)}
-        </div>
-      </div>
-
-      {/* Form */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {[
-          { key: "name", label: "FULL NAME", placeholder: "John Reeves" },
-          { key: "address", label: "SERVICE ADDRESS", placeholder: "123 Main St, Salt Lake City UT" },
-          { key: "email", label: "EMAIL", placeholder: "john@email.com" },
-          { key: "phone", label: "PHONE", placeholder: "(801) 555-0192" },
-        ].map(f => (
-          <div key={f.key}>
-            <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#00d4ff", marginBottom: 6, letterSpacing: 1 }}>{f.label}</div>
-            <input
-              value={form[f.key]}
-              onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-              placeholder={f.placeholder}
-              style={{ width: "100%", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "14px 16px", color: "white", fontFamily: "'Rajdhani', sans-serif", fontSize: 15, outline: "none", transition: "border-color 0.2s" }}
-              onFocus={e => e.target.style.borderColor = "rgba(0,212,255,0.5)"}
-              onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.12)"}
-            />
-          </div>
-        ))}
-
-        <button
-          onClick={() => { if (form.name && form.email) setScreen("submitted"); }}
-          style={{ marginTop: 8, padding: "18px", background: "linear-gradient(135deg, #00d4ff, #0099cc)", border: "none", borderRadius: 10, color: "#050810", fontFamily: "'Syncopate', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 2, cursor: "pointer", boxShadow: "0 0 30px rgba(0,212,255,0.3)" }}>
-          LOCK IN MY RATE →
-        </button>
-        <div style={{ textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.3)", fontFamily: "'Share Tech Mono', monospace" }}>NO CONTRACTS · CANCEL ANYTIME · 24/7 MONITORING</div>
-      </div>
-    </div>
-  </>
-);
-```
-
-}
-
-if (screen === “summary”) {
-return (
-<>
-<style>{css}</style>
-<Noise />
-<div style={{ maxWidth: 480, margin: “0 auto”, padding: “24px 20px”, position: “relative”, zIndex: 1, animation: “slide-up 0.5s ease” }}>
-<div style={{ display: “flex”, alignItems: “center”, gap: 12, marginBottom: 32 }}>
-<button onClick={() => setScreen(“audit”)} style={{ background: “none”, border: “1px solid rgba(255,255,255,0.15)”, borderRadius: 6, color: “rgba(255,255,255,0.5)”, padding: “6px 12px”, cursor: “pointer”, fontFamily: “‘Share Tech Mono’, monospace”, fontSize: 11 }}>← BACK</button>
-<div style={{ fontFamily: “‘Syncopate’, sans-serif”, fontSize: 12, color: “#00d4ff”, letterSpacing: 3 }}>THREAT ANALYSIS</div>
-</div>
-
-```
-      {/* Integrity Score Big */}
-      <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: 28, marginBottom: 20, display: "flex", alignItems: "center", gap: 24 }}>
-        <IntegrityArc score={integrityScore} />
-        <div>
-          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 4 }}>HOME INTEGRITY SCORE</div>
-          <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 28, fontWeight: 700, color: integrityScore > 60 ? "#00d4ff" : integrityScore > 30 ? "#f59e0b" : "#ff3b5c" }}>
-            {integrityScore > 70 ? "MODERATE RISK" : integrityScore > 40 ? "HIGH RISK" : "CRITICAL"}
-          </div>
-          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 4 }}>{selected.size} UNPROTECTED ZONES</div>
-        </div>
-      </div>
-
-      {/* Zone breakdown */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
-        {selectedRooms.map(r => {
-          const rc = RISK_COLORS[r.risk];
-          return (
-            <div key={r.id} style={{ background: rc.bg, border: `1px solid ${rc.border}`, borderRadius: 12, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: rc.label, boxShadow: `0 0 6px ${rc.label}` }} />
-                  <span style={{ fontFamily: "'Syncopate', sans-serif", fontSize: 10, color: rc.label }}>{r.risk} RISK</span>
-                </div>
-                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{r.label}</div>
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.4)" }}>
-                  {r.devices.join(" · ")}
-                </div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 13, color: "#00d4ff" }}>+${r.price.toFixed(2)}</div>
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.3)" }}>/mo</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Total CTA */}
-      <div style={{ background: "rgba(0,212,255,0.05)", border: "1px solid rgba(0,212,255,0.2)", borderRadius: 12, padding: "16px 20px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.4)" }}>TOTAL / MONTH</div>
-          <div style={{ fontFamily: "'Syncopate', sans-serif", fontSize: 32, color: "#00d4ff" }}>${totalMonthly.toFixed(2)}</div>
-        </div>
-        <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 11, color: "#10b981", textAlign: "right" }}>
-          <div>SAVE 28%</div>
-          <div style={{ color: "rgba(255,255,255,0.3)", textDecoration: "line-through" }}>${(totalMonthly * 1.4).toFixed(2)}/mo</div>
-        </div>
-      </div>
-
-      <button onClick={() => setScreen("quote")} style={{ width: "100%", padding: 18, background: "linear-gradient(135deg, #00d4ff, #0099cc)", border: "none", borderRadius: 10, color: "#050810", fontFamily: "'Syncopate', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 2, cursor: "pointer", boxShadow: "0 0 30px rgba(0,212,255,0.3)" }}>
-        SECURE MY HOME →
-      </button>
-    </div>
-  </>
-);
-```
-
-}
-
-// AUDIT SCREEN
-return (
-<>
-<style>{css}</style>
-<Noise />
-
-```
-  {/* Corner brackets */}
-  {["top:0;left:0;border-top:2px solid #00d4ff;border-left:2px solid #00d4ff", "top:0;right:0;border-top:2px solid #00d4ff;border-right:2px solid #00d4ff", "bottom:0;left:0;border-bottom:2px solid #00d4ff;border-left:2px solid #00d4ff", "bottom:0;right:0;border-bottom:2px solid #00d4ff;border-right:2px solid #00d4ff"].map((s, i) => (
-    <div key={i} style={{ position: "fixed", ...Object.fromEntries(s.split(";").map(p => p.split(":").map(x => x.trim())).map(([k, v]) => [k.replace(/-([a-z])/g, (_, c) => c.toUpperCase()), v])), width: 24, height: 24, zIndex: 200, pointerEvents: "none" }} />
-  ))}
-
-  <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px", position: "relative", zIndex: 1 }}>
-    {/* Header */}
-    <div style={{ marginBottom: 28 }}>
-      <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "#00d4ff", letterSpacing: 2, marginBottom: 4 }}>
-        SHIELD_OS v5.2.1 // NODE: SLC-801 // <span style={{ animation: "blink 1s infinite" }}>■</span> SCANNING
-      </div>
-      <div style={{ fontFamily: "'Syncopate', sans-serif", fontSize: 20, fontWeight: 700, letterSpacing: 2, lineHeight: 1.2 }}>HOME SECURITY<br />VULNERABILITY AUDIT</div>
-    </div>
-
-    {/* Stats Row */}
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
-      {[
-        { label: "INTEGRITY", value: `${integrityScore}%`, color: integrityScore > 60 ? "#00d4ff" : integrityScore > 30 ? "#f59e0b" : "#ff3b5c" },
-        { label: "GAPS FOUND", value: selected.size.toString().padStart(2, "0"), color: selected.size > 0 ? "#ff3b5c" : "#10b981" },
-        { label: "THREAT LVL", value: selected.size === 0 ? "LOW" : selected.size < 4 ? "MED" : "HIGH", color: selected.size === 0 ? "#10b981" : selected.size < 4 ? "#f59e0b" : "#ff3b5c" },
-      ].map(s => (
-        <div key={s.label} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "12px 14px" }}>
-          <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(255,255,255,0.35)", marginBottom: 4 }}>{s.label}</div>
-          <div style={{ fontFamily: "'Syncopate', sans-serif", fontSize: 18, color: s.color, transition: "color 0.3s" }}>{s.value}</div>
-        </div>
-      ))}
-    </div>
-
-    {/* Blueprint Map */}
-    <div style={{ background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 16, marginBottom: 20, position: "relative", overflow: "hidden" }}>
-      {/* Scan line */}
-      <div style={{ position: "absolute", left: 0, right: 0, height: "2px", top: `${scanY}%`, background: "linear-gradient(90deg, transparent, rgba(0,212,255,0.5), transparent)", pointerEvents: "none", zIndex: 5, transition: "none" }} />
-
-      <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 12, letterSpacing: 1 }}>
-        TAP ZONES TO FLAG AS UNPROTECTED
-      </div>
-
-      {/* Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gridTemplateRows: "1fr 1fr 1fr", gap: 8, height: 280 }}>
-        {ROOMS.map(room => {
-          const isSelected = selected.has(room.id);
+      if (screen === "audit") {
+        let zones = '';
+        ROOMS.forEach(room => {
+          const isSel = selected.has(room.id);
           const rc = RISK_COLORS[room.risk];
-          return (
-            <div
-              key={room.id}
-              onClick={() => toggleRoom(room.id)}
-              onMouseEnter={() => setHoveredRoom(room.id)}
-              onMouseLeave={() => setHoveredRoom(null)}
-              style={{
-                gridColumn: room.col,
-                gridRow: room.row,
-                background: isSelected ? rc.bg : hoveredRoom === room.id ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.02)",
-                border: `1px solid ${isSelected ? rc.border : hoveredRoom === room.id ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)"}`,
-                borderRadius: 10,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                position: "relative",
-                boxShadow: isSelected ? `0 0 16px ${rc.glow}, inset 0 0 12px ${rc.glow}` : "none",
-                userSelect: "none",
-              }}
-            >
-              {isSelected && (
-                <div style={{ position: "absolute", top: 6, right: 6, width: 6, height: 6, borderRadius: "50%", background: rc.label, boxShadow: `0 0 8px ${rc.label}`, animation: "flicker 1.5s infinite" }} />
-              )}
-              <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: isSelected ? rc.label : "rgba(255,255,255,0.4)", letterSpacing: 1, textAlign: "center", lineHeight: 1.4, transition: "color 0.2s" }}>
-                {room.label.toUpperCase()}
-              </div>
-              {isSelected && (
-                <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 8, color: rc.label, marginTop: 4, opacity: 0.7 }}>{room.risk}</div>
-              )}
+          zones += `
+            <div class="zone ${isSel ? 'active' : ''}" data-id="${room.id}" style="color:${isSel?rc.label:'#aaa'}">
+              <div style="font-size:11.5px;font-weight:700;text-align:center">${room.label}</div>
+              ${isSel ? `<div style="font-size:9px;margin-top:4px">${room.risk}</div>` : ''}
+            </div>`;
+        });
+
+        root.innerHTML = `
+          <div style="max-width:480px;margin:0 auto;padding:24px 20px;position:relative;z-index:1">
+            <div style="margin-bottom:28px">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:10;color:#00d4ff;letter-spacing:2">SHIELD_OS v5.2.1 // SCANNING <span style="animation:blink 1s infinite">■</span></div>
+              <div style="font-family:'Syncopate',sans-serif;font-size:21;font-weight:700;letter-spacing:2">HOME SECURITY<br>VULNERABILITY AUDIT</div>
             </div>
-          );
-        })}
-      </div>
 
-      {/* Legend */}
-      <div style={{ display: "flex", gap: 16, marginTop: 12 }}>
-        {Object.entries(RISK_COLORS).map(([k, v]) => (
-          <div key={k} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: v.label }} />
-            <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(255,255,255,0.35)" }}>{k}</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
+              <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(0,212,255,0.3);border-radius:10;padding:12px;text-align:center">
+                <div style="font-size:9;color:#888">INTEGRITY</div>
+                <div style="font-size:26;color:#00d4ff">${integrityScore}%</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.02);border:1px solid #ff3b5c;border-radius:10;padding:12px;text-align:center">
+                <div style="font-size:9;color:#888">GAPS</div>
+                <div style="font-size:26;color:#ff3b5c">${selected.size}</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.02);border:1px solid #f59e0b;border-radius:10;padding:12px;text-align:center">
+                <div style="font-size:9;color:#888">THREAT</div>
+                <div style="font-size:22;color:#f59e0b">${selected.size>=4?'HIGH':selected.size>0?'MED':'LOW'}</div>
+              </div>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.1);border-radius:16;padding:16px;position:relative;overflow:hidden">
+              <div style="position:absolute;left:0;right:0;height:3px;top:${scanY}%;background:linear-gradient(90deg,transparent,#00d4ff,transparent);z-index:5"></div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;height:310px">
+                ${zones}
+              </div>
+            </div>
+
+            <button onclick="if(selected.size>0){screen='summary';render()}" style="width:100%;margin-top:25px;padding:18px;background:${selected.size>0?'linear-gradient(135deg,#00d4ff,#0099cc)':'rgba(255,255,255,0.05)'};color:${selected.size>0?'#050810':'#666'};border:none;border-radius:10;font-weight:700">
+              ${selected.size > 0 ? `ANALYZE ${selected.size} ZONE${selected.size>1?'S':''} →` : 'SELECT ZONES TO BEGIN'}
+            </button>
           </div>
-        ))}
-      </div>
-    </div>
+        `;
 
-    {/* Device preview for hovered room */}
-    {hoveredRoom && !selected.has(hoveredRoom) && (
-      <div style={{ background: "rgba(0,212,255,0.04)", border: "1px solid rgba(0,212,255,0.15)", borderRadius: 10, padding: "10px 14px", marginBottom: 16, animation: "slide-up 0.2s ease" }}>
-        <div style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "#00d4ff", marginBottom: 4 }}>RECOMMENDED DEVICES</div>
-        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
-          {ROOMS.find(r => r.id === hoveredRoom)?.devices.join("  ·  ")}
-        </div>
-      </div>
-    )}
+        setTimeout(() => {
+          document.querySelectorAll('.zone').forEach(el => {
+            el.addEventListener('click', () => toggleRoom(el.dataset.id));
+          });
+        }, 50);
+      } 
+      else if (screen === "summary") {
+        root.innerHTML = `
+          <div style="max-width:480px;margin:0 auto;padding:24px 20px">
+            <button onclick="screen='audit';render()" style="background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);padding:8px 16px;border-radius:6">← BACK</button>
+            <div style="color:#00d4ff;font-size:22;margin:25px 0">THREAT ANALYSIS</div>
+            <div style="text-align:center;padding:40px;background:rgba(255,255,255,0.02);border-radius:16">
+              <div style="font-size:52px;color:#00d4ff">${integrityScore}%</div>
+              <div style="color:#10b981">INTEGRITY SCORE</div>
+            </div>
+            <button onclick="screen='quote';render()" style="width:100%;margin-top:30px;padding:18px;background:linear-gradient(135deg,#00d4ff,#0099cc);border:none;border-radius:10;color:#050810;font-weight:700">SECURE MY HOME →</button>
+          </div>
+        `;
+      } 
+      else if (screen === "quote") {
+        root.innerHTML = `
+          <div style="max-width:480px;margin:0 auto;padding:24px 20px">
+            <button onclick="screen='summary';render()" style="background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);padding:8px 16px;border-radius:6">← BACK</button>
+            <div style="color:#00d4ff;font-size:22;margin:25px 0">LOCK CONFIGURATION</div>
+            <input type="text" placeholder="Full Name" style="width:100%;padding:15px;margin:10px 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.15);border-radius:10;color:white" onchange="form.name=this.value">
+            <input type="text" placeholder="Address" style="width:100%;padding:15px;margin:10px 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.15);border-radius:10;color:white" onchange="form.address=this.value">
+            <input type="email" placeholder="Email" style="width:100%;padding:15px;margin:10px 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.15);border-radius:10;color:white" onchange="form.email=this.value">
+            <button onclick="if(form.email){screen='submitted';render()}" style="width:100%;padding:18px;margin-top:20px;background:linear-gradient(135deg,#00d4ff,#0099cc);border:none;border-radius:10;color:#050810;font-weight:700">LOCK IN MY RATE →</button>
+          </div>
+        `;
+      } 
+      else if (screen === "submitted") {
+        root.innerHTML = `
+          <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px;text-align:center">
+            <div>
+              <div style="font-size:60px;margin-bottom:20px">✅</div>
+              <div style="font-size:24px;color:#00d4ff">HOME SECURED</div>
+              <div style="font-size:42px;color:#00d4ff;margin:20px 0">$${totalMonthly.toFixed(2)}</div>
+              <p style="color:rgba(255,255,255,0.7)">A specialist will contact you shortly.</p>
+            </div>
+          </div>
+        `;
+      }
+    }
 
-    {/* CTA */}
-    <button
-      onClick={() => selected.size > 0 && setScreen("summary")}
-      style={{
-        width: "100%", padding: "18px",
-        background: selected.size > 0 ? "linear-gradient(135deg, #00d4ff, #0099cc)" : "rgba(255,255,255,0.05)",
-        border: selected.size > 0 ? "none" : "1px solid rgba(255,255,255,0.1)",
-        borderRadius: 10,
-        color: selected.size > 0 ? "#050810" : "rgba(255,255,255,0.3)",
-        fontFamily: "'Syncopate', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 2,
-        cursor: selected.size > 0 ? "pointer" : "default",
-        boxShadow: selected.size > 0 ? "0 0 30px rgba(0,212,255,0.3)" : "none",
-        transition: "all 0.3s",
-      }}
-    >
-      {selected.size > 0 ? `ANALYZE ${selected.size} ZONE${selected.size > 1 ? "S" : ""} →` : "SELECT UNPROTECTED ZONES"}
-    </button>
-
-    <div style={{ textAlign: "center", marginTop: 12, fontFamily: "'Share Tech Mono', monospace", fontSize: 10, color: "rgba(255,255,255,0.2)" }}>
-      LICENSED · INSURED · 24/7 PROFESSIONAL MONITORING
-    </div>
-  </div>
-</>
-```
-
-);
-}
+    window.onload = render;
+  </script>
+</body>
+</html>
